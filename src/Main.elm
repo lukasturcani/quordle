@@ -10,12 +10,74 @@ import Html
 
 
 type alias Model =
-    {}
+    { firstQuad : Quad
+    , secondQuad : Quad
+    , thirdQuad : Quad
+    , fourthQuad : Quad
+    , currentGuess : String
+    , maxGuesses : Int
+    , guesses : List String
+    }
+
+
+type alias Quad =
+    { word : Word
+    }
+
+
+type alias Word =
+    { firstLetter : Char
+    , secondLetter : Char
+    , thirdLetter : Char
+    , fourthLetter : Char
+    , fifthLetter : Char
+    }
 
 
 init : flags -> ( Model, Cmd Msg )
 init _ =
-    ( {}, Cmd.none )
+    ( { firstQuad =
+            { word =
+                { firstLetter = 'a'
+                , secondLetter = 'a'
+                , thirdLetter = 'a'
+                , fourthLetter = 'a'
+                , fifthLetter = 'a'
+                }
+            }
+      , secondQuad =
+            { word =
+                { firstLetter = 'b'
+                , secondLetter = 'b'
+                , thirdLetter = 'b'
+                , fourthLetter = 'b'
+                , fifthLetter = 'b'
+                }
+            }
+      , thirdQuad =
+            { word =
+                { firstLetter = 'c'
+                , secondLetter = 'c'
+                , thirdLetter = 'c'
+                , fourthLetter = 'c'
+                , fifthLetter = 'c'
+                }
+            }
+      , fourthQuad =
+            { word =
+                { firstLetter = 'd'
+                , secondLetter = 'd'
+                , thirdLetter = 'd'
+                , fourthLetter = 'd'
+                , fifthLetter = 'd'
+                }
+            }
+      , guesses = []
+      , currentGuess = ""
+      , maxGuesses = 9
+      }
+    , Cmd.none
+    )
 
 
 
@@ -34,7 +96,9 @@ view model =
 
 
 type Msg
-    = Msg
+    = PressLetter Char
+    | PressBackspace
+    | PressEnter
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
