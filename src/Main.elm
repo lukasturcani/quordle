@@ -315,14 +315,20 @@ viewCurrentGuess currentGuess =
 
 viewCurrentGuessLetter : Char -> Element.Element msg
 viewCurrentGuessLetter char =
-    Element.el
+    Element.row
         [ Background.color currentGuessLetterColor
         , Element.width Element.fill
         , Element.height Element.fill
-        , Font.color fontColor
-        , Font.center
+        , rounded
         ]
-        (char |> String.fromChar >> Element.text)
+        [ Element.el
+            [ Font.color fontColor
+            , Font.center
+            , Element.centerX
+            , Element.centerY
+            ]
+            (char |> String.fromChar >> Element.text)
+        ]
 
 
 viewEmptyLetters : Int -> List (Element.Element msg)
