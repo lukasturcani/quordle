@@ -246,17 +246,6 @@ viewEmptyRows numEmptyRows =
                 :: viewEmptyRows (numEmptyRows - 1)
 
 
-letterStyle =
-    [ Background.color submittedGuessLetterColor
-    , Element.width Element.fill
-    , Element.height Element.fill
-    , Font.color fontColor
-    , Font.center
-    , rounded
-    ]
-
-
-
 wordStyle =
     [ Background.color backgroundColor
     , Element.width Element.fill
@@ -269,21 +258,29 @@ viewWord : Word -> Element.Element msg
 viewWord word =
     Element.row
         wordStyle
+        [ viewSubmittedLetter word.firstLetter
+        , viewSubmittedLetter word.secondLetter
+        , viewSubmittedLetter word.thirdLetter
+        , viewSubmittedLetter word.fourthLetter
+        , viewSubmittedLetter word.fifthLetter
+        ]
+
+viewSubmittedLetter : Char -> Element.Element msg
+viewSubmittedLetter letter =
+    Element.row
+        [ Background.color submittedGuessLetterColor
+        , Element.width Element.fill
+        , Element.height Element.fill
+        , rounded
+        ]
         [ Element.el
-            letterStyle
-            (word.firstLetter |> String.fromChar >> Element.text)
-        , Element.el
-            letterStyle
-            (word.secondLetter |> String.fromChar >> Element.text)
-        , Element.el
-            letterStyle
-            (word.thirdLetter |> String.fromChar >> Element.text)
-        , Element.el
-            letterStyle
-            (word.fourthLetter |> String.fromChar >> Element.text)
-        , Element.el
-            letterStyle
-            (word.fifthLetter |> String.fromChar >> Element.text)
+            [ Font.color fontColor
+            , Font.center
+            , Element.centerX
+            , Element.centerY
+            , rounded
+            ]
+            (letter |> String.fromChar >> Element.text)
         ]
 
 
@@ -306,12 +303,6 @@ viewCurrentGuess currentGuess =
             ++ viewEmptyLetters numEmptyLetters
         )
 
-
-viewLetter : Char -> Element.Element msg
-viewLetter char =
-    Element.el
-        letterStyle
-        (char |> String.fromChar >> Element.text)
 
 viewCurrentGuessLetter : Char -> Element.Element msg
 viewCurrentGuessLetter char =
@@ -361,6 +352,7 @@ keyStyle =
     , Element.height Element.fill
     , Font.center
     , Font.color fontColor
+    , rounded
     ]
 
 
