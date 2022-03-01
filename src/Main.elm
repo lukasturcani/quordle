@@ -5,6 +5,7 @@ import Element
 import Element.Background as Background
 import Element.Border as Border
 import Element.Input as Input
+import Element.Font as Font
 import Html
 import List
 import String
@@ -166,6 +167,8 @@ emptyRowColor = Element.rgb 0.066666 0.094117 0.15294
 currentGuessLetterColor = Element.rgb 0.29411 0.3333333 0.38823
 submittedGuessLetterColor = Element.rgb 0.2157 0.254901 0.3176
 activeLetterColor = Element.rgb 0.13725 0.3137 0.38823
+fontColor = Element.rgb 1.0 1.0 1.0
+keyboardColor = Element.rgb 0.4196 0.447 0.50196
 rounded = Border.rounded 5
 
 
@@ -247,6 +250,8 @@ letterStyle =
     [ Background.color submittedGuessLetterColor
     , Element.width Element.fill
     , Element.height Element.fill
+    , Font.color fontColor
+    , Font.center
     , rounded
     ]
 
@@ -314,6 +319,8 @@ viewCurrentGuessLetter char =
         [ Background.color currentGuessLetterColor
         , Element.width Element.fill
         , Element.height Element.fill
+        , Font.color fontColor
+        , Font.center
         ]
         (char |> String.fromChar >> Element.text)
 
@@ -349,9 +356,11 @@ viewEmptyLetters_ first numEmptyLetters =
 
 
 keyStyle =
-    [ Background.color (Element.rgb 0 1 1)
+    [ Background.color keyboardColor
     , Element.width Element.fill
     , Element.height Element.fill
+    , Font.center
+    , Font.color fontColor
     ]
 
 
