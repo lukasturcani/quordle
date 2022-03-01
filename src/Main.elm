@@ -4,13 +4,13 @@ import Browser
 import Element
 import Element.Background as Background
 import Element.Border as Border
-import Element.Input as Input
 import Element.Font as Font
+import Element.Input as Input
 import Html
-import List
-import String
-import Set
 import Json.Decode
+import List
+import Set
+import String
 
 
 
@@ -42,10 +42,11 @@ type alias Word =
     , fifthLetter : Char
     }
 
+
 currentWordToWord : String -> Maybe Word
 currentWordToWord currentWord =
     case String.toList currentWord of
-        (firstLetter :: secondLetter :: thirdLetter :: fourthLetter :: fifthLetter :: _) ->
+        firstLetter :: secondLetter :: thirdLetter :: fourthLetter :: fifthLetter :: _ ->
             Just
                 { firstLetter = firstLetter
                 , secondLetter = secondLetter
@@ -53,7 +54,9 @@ currentWordToWord currentWord =
                 , fourthLetter = fourthLetter
                 , fifthLetter = fifthLetter
                 }
-        _ -> Nothing
+
+        _ ->
+            Nothing
 
 
 type alias Flags =
@@ -70,13 +73,14 @@ init flags =
                 Flags
                 (Json.Decode.field "answers" (Json.Decode.list Json.Decode.string))
                 (Json.Decode.field "allowed" (Json.Decode.list Json.Decode.string))
+
         decodedFlags =
             case Json.Decode.decodeValue decoder flags of
                 Ok decodedWords ->
                     decodedWords
-                Err _ ->
-                    {allowed = [], answers = []}
 
+                Err _ ->
+                    { allowed = [], answers = [] }
     in
     ( { firstQuad =
             { word =
@@ -136,11 +140,12 @@ init flags =
     )
 
 
-
 type alias GuessResult =
     { green : Set.Set Int
     , yellow : Set.Set Int
     }
+
+
 
 {--
 checkGuess : String -> String -> GuessResult
@@ -158,74 +163,85 @@ checkGuess answer guess =
 matchingLetters : String -> String -> Set Int
 matchingLetters first second =
 --}
-
-
 -- VIEW
 
-backgroundColor = Element.rgb 0.12157 0.16078 0.2157
-emptyRowColor = Element.rgb 0.066666 0.094117 0.15294
-currentGuessLetterColor = Element.rgb 0.29411 0.3333333 0.38823
-submittedGuessLetterColor = Element.rgb 0.2157 0.254901 0.3176
-activeLetterColor = Element.rgb 0.13725 0.3137 0.38823
-fontColor = Element.rgb 1.0 1.0 1.0
-keyboardColor = Element.rgb 0.4196 0.447 0.50196
-rounded = Border.rounded 5
+
+currentGuessLetterColor =
+    Element.rgb 0.29411 0.3333333 0.38823
+
+
+fontColor =
+    Element.rgb 1.0 1.0 1.0
+
+
+rounded =
+    Border.rounded 5
+
+
+styleAttributes =
+    { topLevelNode =
+        [ Background.color (Element.rgb 0.12157 0.16078 0.2157)
+        , Element.paddingXY 700 0
+        ]
+    , topLevelColumn =
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.spacing 7
+        ]
+    , quadRow =
+        [ Element.width (Element.fillPortion 4)
+        , Element.height (Element.fillPortion 4)
+        , Element.spacing 7
+        ]
+    , keyboardRow =
+        [ Element.width (Element.fillPortion 2)
+        , Element.height (Element.fillPortion 2)
+        , Element.spacing 7
+        ]
+    , quad =
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.spacing 4
+        ]
+    , letterRow =
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.spacing 7
+        ]
+    }
 
 
 view : Model -> Html.Html Msg
 view model =
     Element.layout
-        [ Background.color backgroundColor
-        , Element.paddingXY 700 0
-        , Element.width Element.fill
-        , Element.height Element.fill
-        ]
+        styleAttributes.topLevelNode
         (Element.column
-            [ Background.color backgroundColor
-            , Element.spacing 7
-            , Element.width Element.fill
-            , Element.height Element.fill
-            ]
-            [ Element.row
-                [ Background.color backgroundColor
-                , Element.width (Element.fillPortion 4)
-                , Element.height (Element.fillPortion 4)
-                , Element.spacing 7
-                ]
-                [ viewQuad model.maxGuesses model.currentGuess model.guesses model.firstQuad
-                , viewQuad model.maxGuesses model.currentGuess model.guesses model.secondQuad
-                ]
-            , Element.row
-                [ Background.color backgroundColor
-                , Element.width (Element.fillPortion 4)
-                , Element.height (Element.fillPortion 4)
-                , Element.spacing 7
-                ]
-                [ viewQuad model.maxGuesses model.currentGuess model.guesses model.thirdQuad
-                , viewQuad model.maxGuesses model.currentGuess model.guesses model.fourthQuad
-                ]
-            , Element.column
-                [ Background.color backgroundColor
-                , Element.width (Element.fillPortion 2)
-                , Element.height (Element.fillPortion 2)
-                , Element.spacing 7
-                ]
-                viewKeyboard
+            styleAttributes.topLevelColumn
+            [ viewQuadRow model model.firstQuad model.secondQuad
+            , viewQuadRow model model.thirdQuad model.fourthQuad
+            , viewKeyboard
             ]
         )
+
+
+viewQuadRow : Model -> Quad -> Quad -> Element.Element msg
+viewQuadRow model first second =
+    Element.row
+        styleAttributes.quadRow
+        [ viewQuad model.maxGuesses model.currentGuess model.guesses first
+        , viewQuad model.maxGuesses model.currentGuess model.guesses second
+        ]
 
 
 viewQuad : Int -> String -> List Word -> Quad -> Element.Element msg
 viewQuad totalRows currentGuess guesses quad =
     Element.column
-        [ Background.color backgroundColor
-        , Element.width Element.fill
-        , Element.height Element.fill
-        , Element.spacing 4
-        ]
-        (List.map viewWord guesses
-            ++ [ viewCurrentGuess currentGuess ]
-            ++ viewEmptyRows (totalRows - 1 - List.length guesses)
+        styleAttributes.quad
+        (List.concat
+            [ List.map viewWord guesses
+            , [ viewCurrentGuess currentGuess ]
+            , viewEmptyRows (totalRows - 1 - List.length guesses)
+            ]
         )
 
 
@@ -237,7 +253,7 @@ viewEmptyRows numEmptyRows =
 
         _ ->
             Element.row
-                [ Background.color emptyRowColor
+                [ Background.color (Element.rgb 0.066666 0.094117 0.15294)
                 , Element.width Element.fill
                 , Element.height Element.fill
                 , rounded
@@ -246,18 +262,10 @@ viewEmptyRows numEmptyRows =
                 :: viewEmptyRows (numEmptyRows - 1)
 
 
-wordStyle =
-    [ Background.color backgroundColor
-    , Element.width Element.fill
-    , Element.height Element.fill
-    , Element.spacing 7
-    ]
-
-
 viewWord : Word -> Element.Element msg
 viewWord word =
     Element.row
-        wordStyle
+        styleAttributes.letterRow
         [ viewSubmittedLetter word.firstLetter
         , viewSubmittedLetter word.secondLetter
         , viewSubmittedLetter word.thirdLetter
@@ -265,10 +273,11 @@ viewWord word =
         , viewSubmittedLetter word.fifthLetter
         ]
 
+
 viewSubmittedLetter : Char -> Element.Element msg
 viewSubmittedLetter letter =
     Element.row
-        [ Background.color submittedGuessLetterColor
+        [ Background.color (Element.rgb 0.2157 0.254901 0.3176)
         , Element.width Element.fill
         , Element.height Element.fill
         , rounded
@@ -298,7 +307,7 @@ viewCurrentGuess currentGuess =
                 0
     in
     Element.row
-        wordStyle
+        styleAttributes.letterRow
         ((String.toList currentGuess |> List.map viewCurrentGuessLetter)
             ++ viewEmptyLetters numEmptyLetters
         )
@@ -317,19 +326,22 @@ viewCurrentGuessLetter char =
 
 
 viewEmptyLetters : Int -> List (Element.Element msg)
-viewEmptyLetters = viewEmptyLetters_ True
+viewEmptyLetters =
+    viewEmptyLetters_ True
+
 
 viewEmptyLetters_ : Bool -> Int -> List (Element.Element msg)
 viewEmptyLetters_ first numEmptyLetters =
     if first && numEmptyLetters > 0 then
         Element.el
-            [ Background.color activeLetterColor
+            [ Background.color (Element.rgb 0.13725 0.3137 0.38823)
             , Element.width Element.fill
             , Element.height Element.fill
             , rounded
             ]
             Element.none
-        :: viewEmptyLetters_ False (numEmptyLetters - 1)
+            :: viewEmptyLetters_ False (numEmptyLetters - 1)
+
     else
         case numEmptyLetters of
             0 ->
@@ -347,7 +359,7 @@ viewEmptyLetters_ first numEmptyLetters =
 
 
 keyStyle =
-    [ Background.color keyboardColor
+    [ Background.color (Element.rgb 0.4196 0.447 0.50196)
     , Element.width Element.fill
     , Element.height Element.fill
     , Font.center
@@ -365,27 +377,29 @@ viewKey char =
         }
 
 
-viewKeyboard : List (Element.Element Msg)
+viewKeyboard : Element.Element Msg
 viewKeyboard =
-    [ Element.row
-        [ Element.height Element.fill
-        , Element.width Element.fill
-        , Element.spacing 7
+    Element.column
+        styleAttributes.keyboardRow
+        [ Element.row
+            [ Element.height Element.fill
+            , Element.width Element.fill
+            , Element.spacing 7
+            ]
+            ("QWERTYUIOP" |> String.toList >> viewKeyboardRow)
+        , Element.row
+            [ Element.height Element.fill
+            , Element.width Element.fill
+            , Element.spacing 7
+            ]
+            ("ASDFGHJKL" |> String.toList >> viewKeyboardRow)
+        , Element.row
+            [ Element.height Element.fill
+            , Element.width Element.fill
+            , Element.spacing 7
+            ]
+            ("ZXCVBNM" |> String.toList >> viewKeyboardBottomRow)
         ]
-        ("QWERTYUIOP" |> String.toList >> viewKeyboardRow)
-    , Element.row
-        [ Element.height Element.fill
-        , Element.width Element.fill
-        , Element.spacing 7
-        ]
-        ("ASDFGHJKL" |> String.toList >> viewKeyboardRow)
-    , Element.row
-        [ Element.height Element.fill
-        , Element.width Element.fill
-        , Element.spacing 7
-        ]
-        ("ZXCVBNM" |> String.toList >> viewKeyboardBottomRow)
-    ]
 
 
 viewKeyboardRow : List Char -> List (Element.Element Msg)
@@ -447,10 +461,10 @@ update msg model =
 
         PressEnter ->
             if isValidGuess model.validWords model.currentGuess then
-                (
-                  commitGuess model
+                ( commitGuess model
                 , Cmd.none
                 )
+
             else
                 ( model, Cmd.none )
 
@@ -465,13 +479,14 @@ commitGuess model =
     case currentWordToWord model.currentGuess of
         Just guess ->
             { model
-            | currentGuess =
-                ""
-            , guesses =
-                model.guesses ++ [guess]
-            , validWords =
-                Set.remove model.currentGuess model.validWords
+                | currentGuess =
+                    ""
+                , guesses =
+                    model.guesses ++ [ guess ]
+                , validWords =
+                    Set.remove model.currentGuess model.validWords
             }
+
         Nothing ->
             model
 
