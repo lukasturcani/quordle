@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import Browser
+import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
@@ -41,6 +42,15 @@ type alias Word =
     , fourthLetter : Char
     , fifthLetter : Char
     }
+
+wordToLetters : Word -> List Letter
+wordToLetters word =
+    [ (0, word.firstLetter)
+    , (1, word.secondLetter)
+    , (2, word.thirdLetter)
+    , (3, word.fourthLetter)
+    , (4, word.firstLetter)
+    ]
 
 
 currentWordToWord : String -> Maybe Word
@@ -84,38 +94,38 @@ init flags =
     in
     ( { firstQuad =
             { word =
-                { firstLetter = 'A'
-                , secondLetter = 'A'
+                { firstLetter = 'T'
+                , secondLetter = 'E'
                 , thirdLetter = 'A'
-                , fourthLetter = 'A'
-                , fifthLetter = 'A'
+                , fourthLetter = 'R'
+                , fifthLetter = 'S'
                 }
             }
       , secondQuad =
             { word =
-                { firstLetter = 'B'
-                , secondLetter = 'B'
-                , thirdLetter = 'B'
-                , fourthLetter = 'B'
-                , fifthLetter = 'B'
+                { firstLetter = 'D'
+                , secondLetter = 'E'
+                , thirdLetter = 'A'
+                , fourthLetter = 'R'
+                , fifthLetter = 'S'
                 }
             }
       , thirdQuad =
             { word =
-                { firstLetter = 'C'
-                , secondLetter = 'C'
-                , thirdLetter = 'C'
-                , fourthLetter = 'C'
-                , fifthLetter = 'C'
+                { firstLetter = 'D'
+                , secondLetter = 'I'
+                , thirdLetter = 'N'
+                , fourthLetter = 'E'
+                , fifthLetter = 'R'
                 }
             }
       , fourthQuad =
             { word =
-                { firstLetter = 'D'
-                , secondLetter = 'D'
-                , thirdLetter = 'D'
-                , fourthLetter = 'D'
-                , fifthLetter = 'D'
+                { firstLetter = 'S'
+                , secondLetter = 'I'
+                , thirdLetter = 'L'
+                , fourthLetter = 'L'
+                , fifthLetter = 'Y'
                 }
             }
       , guesses =
@@ -145,24 +155,95 @@ type alias GuessResult =
     , yellow : Set.Set Int
     }
 
+type alias Letter = (Int, Char)
+type Thruple a b c= Thruple a b c
+thrupleFirst (Thruple x _ _) = x
+thrupleSecond (Thruple _ x _) = x
+thrupleThird (Thruple _ _ x) = x
+
+thrupleFromLetters : Letter -> Letter -> Thruple Int Char Char
+thrupleFromLetters (index, x) (_, y) = Thruple index x y
 
 
-{--
-checkGuess : String -> String -> GuessResult
+b : (a -> b) -> (a -> c) -> (b -> c -> d) -> a -> d
+b f g e x = e (f x) (g x)
+
+bb : (a -> b) -> (c -> d -> a) -> c -> d -> b
+bb f g x y = f (g x y)
+
+c : (a -> b) -> (b -> c -> d) -> a -> c -> d
+c f g x y = g (f x) y
+
+flip : (a -> b -> c) -> b -> a -> c
+flip f x y = f y x
+
+dictUpdate : (Maybe v -> Maybe v) -> comparable -> Dict.Dict comparable v -> Dict.Dict comparable v
+dictUpdate f k d = Dict.update k f d
+
+checkGuess : List Letter -> List Letter -> GuessResult
 checkGuess answer guess =
     let
-        greenLetters = matchingLetters answer guess
-        answerCounter = answer |> removeLetters greenLetters >> countLetters
-        guessCounter = guess |> removeLetters greenLetters >> countLetters
+        greenLetters =
+            List.foldr
+                (\x acc ->
+                    if b thrupleSecond thrupleThird (==) x
+                    then Set.insert (thrupleFirst x) acc
+                    else acc
+                )
+                Set.empty
+                (List.map2 thrupleFromLetters answer guess)
+
+        answerCounter =
+            answer
+            |> List.filter
+                (Tuple.first >> flip Set.member greenLetters >> not)
+            |> List.foldr
+                (c Tuple.second (dictUpdate incrementCount))
+                Dict.empty
     in
-    { green = green
-    , yellow = yellow
+    { green = greenLetters
+    , yellow = getYellowLetters answerCounter guess
     }
 
 
-matchingLetters : String -> String -> Set Int
-matchingLetters first second =
---}
+incrementCount : Maybe Int -> Maybe Int
+incrementCount count =
+    case count of
+        Nothing -> Just 1
+        Just x -> Just (x + 1)
+
+
+getWithDefault : v -> comparable -> Dict.Dict comparable v -> v
+getWithDefault v k d =
+    case Dict.get k d of
+        Nothing ->
+            v
+        Just r ->
+            r
+
+
+getYellowLetters : Dict.Dict Char Int -> List Letter -> Set.Set Int
+getYellowLetters answerCounter guess =
+    (List.foldr
+        (\(index, char) acc ->
+            let
+                letterCount = getWithDefault 0 char acc.answerCounter
+            in
+            if letterCount > 0
+            then
+                { yellowLetters =
+                    Set.insert index acc.yellowLetters
+                , answerCounter =
+                    Dict.insert char (letterCount - 1) acc.answerCounter
+                }
+            else acc
+        )
+        { yellowLetters = Set.empty
+        , answerCounter = answerCounter
+        }
+        guess
+    ).yellowLetters
+
 -- VIEW
 
 
@@ -238,7 +319,7 @@ viewQuad totalRows currentGuess guesses quad =
     Element.column
         styleAttributes.quad
         (List.concat
-            [ List.map viewWord guesses
+            [ List.map (viewWord (wordToLetters quad.word)) guesses
             , [ viewCurrentGuess currentGuess ]
             , viewEmptyRows (totalRows - 1 - List.length guesses)
             ]
@@ -262,22 +343,37 @@ viewEmptyRows numEmptyRows =
                 :: viewEmptyRows (numEmptyRows - 1)
 
 
-viewWord : Word -> Element.Element msg
-viewWord word =
+viewWord : List Letter -> Word -> Element.Element msg
+viewWord answer word =
+    let
+        guessResult = checkGuess answer (wordToLetters word)
+    in
     Element.row
         styleAttributes.letterRow
-        [ viewSubmittedLetter word.firstLetter
-        , viewSubmittedLetter word.secondLetter
-        , viewSubmittedLetter word.thirdLetter
-        , viewSubmittedLetter word.fourthLetter
-        , viewSubmittedLetter word.fifthLetter
+        [ viewSubmittedLetter (letterColor guessResult 0) word.firstLetter
+        , viewSubmittedLetter (letterColor guessResult 1) word.secondLetter
+        , viewSubmittedLetter (letterColor guessResult 2) word.thirdLetter
+        , viewSubmittedLetter (letterColor guessResult 3) word.fourthLetter
+        , viewSubmittedLetter (letterColor guessResult 4) word.fifthLetter
         ]
 
+letterColor : GuessResult -> Int -> Element.Color
+letterColor guessResult index =
+    case Set.member index guessResult.green of
+        True ->
+            Element.rgb 0.0 1.0 0.0
+        False ->
+            case Set.member index guessResult.yellow of
+                True ->
+                    Element.rgb 1.0 1.0 0.0
+                False ->
+                    Element.rgb 0.2157 0.254901 0.3176
 
-viewSubmittedLetter : Char -> Element.Element msg
-viewSubmittedLetter letter =
+
+viewSubmittedLetter : Element.Color -> Char -> Element.Element msg
+viewSubmittedLetter color letter =
     Element.row
-        [ Background.color (Element.rgb 0.2157 0.254901 0.3176)
+        [ Background.color color
         , Element.width Element.fill
         , Element.height Element.fill
         , rounded
