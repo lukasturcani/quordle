@@ -31,39 +31,19 @@ type alias Model =
 
 
 type alias Quad =
-    { word : Word
+    { answer : Word
     }
 
 
 type alias Word =
-    { firstLetter : Char
-    , secondLetter : Char
-    , thirdLetter : Char
-    , fourthLetter : Char
-    , fifthLetter : Char
-    }
-
-wordToLetters : Word -> List Letter
-wordToLetters word =
-    [ (0, word.firstLetter)
-    , (1, word.secondLetter)
-    , (2, word.thirdLetter)
-    , (3, word.fourthLetter)
-    , (4, word.firstLetter)
-    ]
+    List Char
 
 
 currentWordToWord : String -> Maybe Word
 currentWordToWord currentWord =
     case String.toList currentWord of
         firstLetter :: secondLetter :: thirdLetter :: fourthLetter :: fifthLetter :: _ ->
-            Just
-                { firstLetter = firstLetter
-                , secondLetter = secondLetter
-                , thirdLetter = thirdLetter
-                , fourthLetter = fourthLetter
-                , fifthLetter = fifthLetter
-                }
+            Just [ firstLetter, secondLetter, thirdLetter, fourthLetter, fifthLetter ]
 
         _ ->
             Nothing
@@ -92,55 +72,13 @@ init flags =
                 Err _ ->
                     { allowed = [], answers = [] }
     in
-    ( { firstQuad =
-            { word =
-                { firstLetter = 'T'
-                , secondLetter = 'E'
-                , thirdLetter = 'A'
-                , fourthLetter = 'R'
-                , fifthLetter = 'S'
-                }
-            }
-      , secondQuad =
-            { word =
-                { firstLetter = 'D'
-                , secondLetter = 'E'
-                , thirdLetter = 'A'
-                , fourthLetter = 'R'
-                , fifthLetter = 'S'
-                }
-            }
-      , thirdQuad =
-            { word =
-                { firstLetter = 'D'
-                , secondLetter = 'I'
-                , thirdLetter = 'N'
-                , fourthLetter = 'E'
-                , fifthLetter = 'R'
-                }
-            }
-      , fourthQuad =
-            { word =
-                { firstLetter = 'S'
-                , secondLetter = 'I'
-                , thirdLetter = 'L'
-                , fourthLetter = 'L'
-                , fifthLetter = 'Y'
-                }
-            }
+    ( { firstQuad = { answer = String.toList "TEARS" }
+      , secondQuad = { answer = String.toList "DEARS" }
+      , thirdQuad = { answer = String.toList "DINER" }
+      , fourthQuad = { answer = String.toList "SILLY" }
       , guesses =
-            [ { firstLetter = 'T'
-              , secondLetter = 'E'
-              , thirdLetter = 'A'
-              , fourthLetter = 'R'
-              , fifthLetter = 'S'
-              }
-            , { firstLetter = 'F'
-              , secondLetter = 'E'
-              , thirdLetter = 'A'
-              , fourthLetter = 'R'
-              , fifthLetter = 'S'
-              }
+            [ String.toList "TEARS"
+            , String.toList "FEARS"
             ]
       , currentGuess = "ABC"
       , maxGuesses = 9
@@ -150,67 +88,55 @@ init flags =
     )
 
 
-type alias GuessResult =
-    { green : Set.Set Int
-    , yellow : Set.Set Int
-    }
+type Thruple a b c
+    = Thruple a b c
 
-type alias Letter = (Int, Char)
-type Thruple a b c= Thruple a b c
-thrupleFirst (Thruple x _ _) = x
-thrupleSecond (Thruple _ x _) = x
-thrupleThird (Thruple _ _ x) = x
 
-thrupleFromLetters : Letter -> Letter -> Thruple Int Char Char
-thrupleFromLetters (index, x) (_, y) = Thruple index x y
+thrupleFirst (Thruple x _ _) =
+    x
+
+
+thrupleSecond (Thruple _ x _) =
+    x
+
+
+thrupleThird (Thruple _ _ x) =
+    x
 
 
 b : (a -> b) -> (a -> c) -> (b -> c -> d) -> a -> d
-b f g e x = e (f x) (g x)
+b f g e x =
+    e (f x) (g x)
+
 
 bb : (a -> b) -> (c -> d -> a) -> c -> d -> b
-bb f g x y = f (g x y)
+bb f g x y =
+    f (g x y)
+
 
 c : (a -> b) -> (b -> c -> d) -> a -> c -> d
-c f g x y = g (f x) y
+c f g x y =
+    g (f x) y
+
 
 flip : (a -> b -> c) -> b -> a -> c
-flip f x y = f y x
+flip f x y =
+    f y x
+
 
 dictUpdate : (Maybe v -> Maybe v) -> comparable -> Dict.Dict comparable v -> Dict.Dict comparable v
-dictUpdate f k d = Dict.update k f d
-
-checkGuess : List Letter -> List Letter -> GuessResult
-checkGuess answer guess =
-    let
-        greenLetters =
-            List.foldr
-                (\x acc ->
-                    if b thrupleSecond thrupleThird (==) x
-                    then Set.insert (thrupleFirst x) acc
-                    else acc
-                )
-                Set.empty
-                (List.map2 thrupleFromLetters answer guess)
-
-        answerCounter =
-            answer
-            |> List.filter
-                (Tuple.first >> flip Set.member greenLetters >> not)
-            |> List.foldr
-                (c Tuple.second (dictUpdate incrementCount))
-                Dict.empty
-    in
-    { green = greenLetters
-    , yellow = getYellowLetters answerCounter guess
-    }
+dictUpdate f k d =
+    Dict.update k f d
 
 
 incrementCount : Maybe Int -> Maybe Int
 incrementCount count =
     case count of
-        Nothing -> Just 1
-        Just x -> Just (x + 1)
+        Nothing ->
+            Just 1
+
+        Just x ->
+            Just (x + 1)
 
 
 getWithDefault : v -> comparable -> Dict.Dict comparable v -> v
@@ -218,31 +144,36 @@ getWithDefault v k d =
     case Dict.get k d of
         Nothing ->
             v
+
         Just r ->
             r
 
 
-getYellowLetters : Dict.Dict Char Int -> List Letter -> Set.Set Int
+getYellowLetters : Dict.Dict Char Int -> Word -> Set.Set Int
 getYellowLetters answerCounter guess =
     (List.foldr
-        (\(index, char) acc ->
+        (\( index, char ) acc ->
             let
-                letterCount = getWithDefault 0 char acc.answerCounter
+                letterCount =
+                    getWithDefault 0 char acc.answerCounter
             in
-            if letterCount > 0
-            then
+            if letterCount > 0 then
                 { yellowLetters =
                     Set.insert index acc.yellowLetters
                 , answerCounter =
                     Dict.insert char (letterCount - 1) acc.answerCounter
                 }
-            else acc
+
+            else
+                acc
         )
         { yellowLetters = Set.empty
         , answerCounter = answerCounter
         }
-        guess
+        (List.map2 Tuple.pair (List.range 0 (List.length guess)) guess)
     ).yellowLetters
+
+
 
 -- VIEW
 
@@ -314,16 +245,212 @@ viewQuadRow model first second =
         ]
 
 
+type alias GuessMiss =
+    List MissedWordLetter
+
+
+type MissedWordLetter
+    = MissedWordLetter MissedLetterColor Char
+
+
+type MissedLetterColor
+    = Green
+    | Yellow
+    | Normal
+
+
+type GuessResult
+    = GuessResultGuessMatch
+    | GuessResultGuessMiss GuessMiss
+
+
+type QuadResult
+    = QuadResultMiss (List GuessMiss)
+    | QuadResultMatch (List GuessMiss) Word
+
+
+getColor : MissedLetterColor -> Element.Color
+getColor color =
+    case color of
+        Green ->
+            Element.rgb 0.0 1.0 0.0
+
+        Yellow ->
+            Element.rgb 0.8 0.8 0.2
+
+        Normal ->
+            Element.rgb 0.2157 0.254901 0.3176
+
+
 viewQuad : Int -> String -> List Word -> Quad -> Element.Element msg
 viewQuad totalRows currentGuess guesses quad =
+    let
+        quadResult =
+            List.foldl
+                (\guess acc ->
+                    case acc of
+                        QuadResultMatch _ _ ->
+                            acc
+
+                        QuadResultMiss misses ->
+                            case checkGuess quad.answer guess of
+                                GuessResultGuessMatch ->
+                                    QuadResultMatch misses guess
+
+                                GuessResultGuessMiss miss ->
+                                    QuadResultMiss (miss :: misses)
+                )
+                (QuadResultMiss [])
+                guesses
+
+        quadMatched =
+            case quadResult of
+                QuadResultMatch _ _ ->
+                    True
+
+                QuadResultMiss _ ->
+                    False
+
+        quadActive =
+            not quadMatched && List.length guesses < totalRows
+    in
     Element.column
         styleAttributes.quad
         (List.concat
-            [ List.map (viewWord (wordToLetters quad.word)) guesses
-            , [ viewCurrentGuess currentGuess ]
-            , viewEmptyRows (totalRows - 1 - List.length guesses)
+            [ viewQuadResult quadResult
+            , if quadActive then
+                [ viewCurrentGuess currentGuess ]
+
+              else
+                []
+            , viewEmptyRows (getNumEmptyRows totalRows quadResult)
             ]
         )
+
+
+viewQuadResult : QuadResult -> List (Element.Element msg)
+viewQuadResult quadResult =
+    case quadResult of
+        QuadResultMiss misses ->
+            List.map viewMissedWord misses
+
+        QuadResultMatch misses answer ->
+            List.map viewMissedWord misses ++ [ viewAnswer answer ]
+
+
+viewMissedWord : GuessMiss -> Element.Element msg
+viewMissedWord word =
+    Element.row
+        styleAttributes.letterRow
+        (List.map viewMissedWordLetter word)
+
+
+viewMissedWordLetter : MissedWordLetter -> Element.Element msg
+viewMissedWordLetter (MissedWordLetter color char) =
+    Element.row
+        [ Background.color (getColor color)
+        , Element.width Element.fill
+        , Element.height Element.fill
+        , rounded
+        ]
+        [ Element.el
+            [ Font.color fontColor
+            , Font.center
+            , Element.centerX
+            , Element.centerY
+            , rounded
+            ]
+            (char |> String.fromChar >> Element.text)
+        ]
+
+
+viewAnswer : Word -> Element.Element msg
+viewAnswer word =
+    Element.row
+        styleAttributes.letterRow
+        (List.map viewAnswerLetter word)
+
+
+viewAnswerLetter : Char -> Element.Element msg
+viewAnswerLetter char =
+    Element.row
+        [ Background.color (Element.rgb 0.0 1.0 0.0)
+        , Element.width Element.fill
+        , Element.height Element.fill
+        , rounded
+        ]
+        [ Element.el
+            [ Font.color fontColor
+            , Font.center
+            , Element.centerX
+            , Element.centerY
+            , rounded
+            ]
+            (char |> String.fromChar >> Element.text)
+        ]
+
+
+checkGuess : Word -> Word -> GuessResult
+checkGuess answer guess =
+    case answer == guess of
+        True ->
+            GuessResultGuessMatch
+
+        False ->
+            GuessResultGuessMiss (checkMiss answer guess)
+
+
+checkMiss : Word -> Word -> GuessMiss
+checkMiss answer guess =
+    let
+        greenLetters =
+            let
+                numLetters =
+                    max (List.length answer) (List.length guess)
+            in
+            List.foldr
+                (\x acc ->
+                    if b thrupleSecond thrupleThird (==) x then
+                        Set.insert (thrupleFirst x) acc
+
+                    else
+                        acc
+                )
+                Set.empty
+                (List.map3 Thruple (List.range 0 numLetters) answer guess)
+
+        answerCounter =
+            List.map2 Tuple.pair (List.range 0 (List.length answer)) answer
+                |> List.filter
+                    (Tuple.first >> flip Set.member greenLetters >> not)
+                |> List.foldr
+                    (c Tuple.second (dictUpdate incrementCount))
+                    Dict.empty
+        yellowLetters = getYellowLetters answerCounter guess
+    in
+    List.map
+        (\(index, letter) ->
+            case Set.member index greenLetters of
+                True ->
+                    MissedWordLetter Green letter
+                False ->
+                    case Set.member index yellowLetters of
+                        True ->
+                            MissedWordLetter Yellow letter
+                        False ->
+                            MissedWordLetter Normal letter
+        )
+        (List.map2 Tuple.pair (List.range 0 (List.length guess)) guess)
+
+
+getNumEmptyRows : Int -> QuadResult -> Int
+getNumEmptyRows totalRows quadResult =
+    case quadResult of
+        QuadResultMiss misses ->
+            totalRows - 1 - List.length misses
+
+        QuadResultMatch misses _ ->
+            totalRows - List.length misses
 
 
 viewEmptyRows : Int -> List (Element.Element msg)
@@ -341,33 +468,6 @@ viewEmptyRows numEmptyRows =
                 ]
                 []
                 :: viewEmptyRows (numEmptyRows - 1)
-
-
-viewWord : List Letter -> Word -> Element.Element msg
-viewWord answer word =
-    let
-        guessResult = checkGuess answer (wordToLetters word)
-    in
-    Element.row
-        styleAttributes.letterRow
-        [ viewSubmittedLetter (letterColor guessResult 0) word.firstLetter
-        , viewSubmittedLetter (letterColor guessResult 1) word.secondLetter
-        , viewSubmittedLetter (letterColor guessResult 2) word.thirdLetter
-        , viewSubmittedLetter (letterColor guessResult 3) word.fourthLetter
-        , viewSubmittedLetter (letterColor guessResult 4) word.fifthLetter
-        ]
-
-letterColor : GuessResult -> Int -> Element.Color
-letterColor guessResult index =
-    case Set.member index guessResult.green of
-        True ->
-            Element.rgb 0.0 1.0 0.0
-        False ->
-            case Set.member index guessResult.yellow of
-                True ->
-                    Element.rgb 1.0 1.0 0.0
-                False ->
-                    Element.rgb 0.2157 0.254901 0.3176
 
 
 viewSubmittedLetter : Element.Color -> Char -> Element.Element msg
