@@ -82,7 +82,10 @@ init flags =
             ]
       , currentGuess = "ABC"
       , maxGuesses = 9
-      , validWords = Set.fromList decodedFlags.allowed
+      , validWords =
+            Set.union
+                (Set.fromList decodedFlags.allowed)
+                (Set.fromList decodedFlags.answers)
       }
     , Cmd.none
     )
@@ -151,7 +154,7 @@ getWithDefault v k d =
 
 getYellowLetters : Dict.Dict Char Int -> Word -> Set.Set Int
 getYellowLetters answerCounter guess =
-    (List.foldr
+    (List.foldl
         (\( index, char ) acc ->
             let
                 letterCount =
@@ -314,28 +317,34 @@ viewQuad totalRows currentGuess guesses quad =
         quadActive =
             not quadMatched && List.length guesses < totalRows
     in
-    Element.column
-        styleAttributes.quad
-        (List.concat
-            [ viewQuadResult quadResult
-            , if quadActive then
-                [ viewCurrentGuess currentGuess ]
-
-              else
-                []
-            , viewEmptyRows (getNumEmptyRows totalRows quadResult)
-            ]
-        )
-
-
-viewQuadResult : QuadResult -> List (Element.Element msg)
-viewQuadResult quadResult =
     case quadResult of
         QuadResultMiss misses ->
-            List.map viewMissedWord misses
+            Element.column
+                styleAttributes.quad
+                (List.concat
+                    [ List.map viewMissedWord misses
+                    , if quadActive then
+                        [ viewCurrentGuess currentGuess ]
 
+                      else
+                        []
+                    , viewEmptyRows (getNumEmptyRows totalRows quadResult)
+                    ]
+                )
         QuadResultMatch misses answer ->
-            List.map viewMissedWord misses ++ [ viewAnswer answer ]
+            Element.column
+                styleAttributes.quad
+                (List.concat
+                    [ List.map viewMissedWord misses
+                    , [ viewAnswer answer ]
+                    , if quadActive then
+                        [ viewCurrentGuess currentGuess ]
+
+                      else
+                        []
+                    , viewEmptyRows (getNumEmptyRows totalRows quadResult)
+                    ]
+                )
 
 
 viewMissedWord : GuessMiss -> Element.Element msg
@@ -408,7 +417,7 @@ checkMiss answer guess =
                 numLetters =
                     max (List.length answer) (List.length guess)
             in
-            List.foldr
+            List.foldl
                 (\x acc ->
                     if b thrupleSecond thrupleThird (==) x then
                         Set.insert (thrupleFirst x) acc
@@ -423,7 +432,7 @@ checkMiss answer guess =
             List.map2 Tuple.pair (List.range 0 (List.length answer)) answer
                 |> List.filter
                     (Tuple.first >> flip Set.member greenLetters >> not)
-                |> List.foldr
+                |> List.foldl
                     (c Tuple.second (dictUpdate incrementCount))
                     Dict.empty
         yellowLetters = getYellowLetters answerCounter guess
@@ -684,7 +693,7 @@ commitGuess model =
                 | currentGuess =
                     ""
                 , guesses =
-                    model.guesses ++ [ guess ]
+                    guess :: model.guesses
                 , validWords =
                     Set.remove model.currentGuess model.validWords
             }
