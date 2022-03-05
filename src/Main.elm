@@ -289,7 +289,7 @@ viewQuad : Int -> String -> List Word -> Quad -> Element.Element msg
 viewQuad totalRows currentGuess guesses quad =
     let
         quadResult =
-            List.foldl
+            List.foldr
                 (\guess acc ->
                     case acc of
                         QuadResultMatch _ _ ->
@@ -317,34 +317,33 @@ viewQuad totalRows currentGuess guesses quad =
         quadActive =
             not quadMatched && List.length guesses < totalRows
     in
-    case quadResult of
-        QuadResultMiss misses ->
-            Element.column
-                styleAttributes.quad
-                (List.concat
-                    [ List.map viewMissedWord misses
-                    , if quadActive then
-                        [ viewCurrentGuess currentGuess ]
+    Element.column
+        styleAttributes.quad
+        (case quadResult of
+            QuadResultMiss misses ->
+                    (List.concat
+                        [ List.map viewMissedWord misses
+                        , if quadActive then
+                            [ viewCurrentGuess currentGuess ]
 
-                      else
-                        []
-                    , viewEmptyRows (getNumEmptyRows totalRows quadResult)
-                    ]
-                )
-        QuadResultMatch misses answer ->
-            Element.column
-                styleAttributes.quad
-                (List.concat
-                    [ List.map viewMissedWord misses
-                    , [ viewAnswer answer ]
-                    , if quadActive then
-                        [ viewCurrentGuess currentGuess ]
+                          else
+                            []
+                        , viewEmptyRows (getNumEmptyRows totalRows quadResult)
+                        ]
+                    )
+            QuadResultMatch misses answer ->
+                    (List.concat
+                        [ List.map viewMissedWord misses
+                        , [ viewAnswer answer ]
+                        , if quadActive then
+                            [ viewCurrentGuess currentGuess ]
 
-                      else
-                        []
-                    , viewEmptyRows (getNumEmptyRows totalRows quadResult)
-                    ]
-                )
+                          else
+                            []
+                        , viewEmptyRows (getNumEmptyRows totalRows quadResult)
+                        ]
+                    )
+        )
 
 
 viewMissedWord : GuessMiss -> Element.Element msg
