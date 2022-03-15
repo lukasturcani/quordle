@@ -289,22 +289,32 @@ viewQuad : Int -> String -> List Word -> Quad -> Element.Element msg
 viewQuad totalRows currentGuess guesses quad =
     let
         quadResult =
-            List.foldr
-                (\guess acc ->
-                    case acc of
-                        QuadResultMatch _ _ ->
-                            acc
+            let
+                r = List.foldr
+                    (\guess acc ->
+                        case acc of
+                            QuadResultMatch _ _ ->
+                                acc
 
-                        QuadResultMiss misses ->
-                            case checkGuess quad.answer guess of
-                                GuessResultGuessMatch ->
-                                    QuadResultMatch misses guess
+                            QuadResultMiss misses ->
+                                case checkGuess quad.answer guess of
+                                    GuessResultGuessMatch ->
+                                        QuadResultMatch
+                                            misses
+                                            guess
 
-                                GuessResultGuessMiss miss ->
-                                    QuadResultMiss (miss :: misses)
-                )
-                (QuadResultMiss [])
-                guesses
+                                    GuessResultGuessMiss miss ->
+                                        QuadResultMiss (miss :: misses)
+                    )
+                    (QuadResultMiss [])
+                    guesses
+            in
+            case r of
+                QuadResultMatch misses guess ->
+                    QuadResultMatch (List.reverse misses) guess
+                QuadResultMiss misses ->
+                    QuadResultMiss <| List.reverse misses
+
 
         quadMatched =
             case quadResult of
