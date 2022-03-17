@@ -226,25 +226,85 @@ styleAttributes =
     }
 
 
+type alias ModelStyle msg =
+    { elementLayout : List (Element.Attribute msg)
+    , quadRow : QuadRowStyle msg
+    }
+
+type alias QuadRowStyle msg =
+    { elementRow : List (Element.Attribute msg)
+    , quad : QuadStyle msg
+    }
+
+type alias QuadRowView =
+    { first: QuadView
+    , second: QuadView
+    }
+
+type alias QuadStyle msg =
+    { elementColumn : List (Element.Attribute msg)
+    , emptyRow : EmptyRowStyle msg
+    }
+
+type alias QuadView =
+    { totalRows : Int
+    , currentGuess : String
+    , guesses : List Word
+    , quad : Quad
+    }
+
+type alias EmptyRowStyle msg =
+    { elementRow : List (Element.Attribute msg)
+    }
+
+modelStyle : ModelStyle msg
+modelStyle =
+    { elementLayout = []
+    , quadRow =
+        { elementRow = []
+        , quad =
+            { elementColumn = []
+            , emptyRow =
+                { elementRow = []
+                }
+            }
+        }
+    }
+
+
 view : Model -> Html.Html Msg
 view model =
+    let
+        quadRowView =
+            { totalRows = model.maxGuesses
+            , currentGuess = model.currentGuess
+            , guesses = model.guesses
+            }
+    in
     Element.layout
-        styleAttributes.topLevelNode
+        modelStyle.elementLayout
+        Element.lazy viewMod
         (Element.column
             styleAttributes.topLevelColumn
-            [ viewQuadRow model model.firstQuad model.secondQuad
-            , viewQuadRow model model.thirdQuad model.fourthQuad
+            [ viewQuadRow
+                modelStyle.quadRow
+                { quadRowView | first = model.firstQuad }
+            , viewQuadRow
+                modelStyle.quadRow
+                {first = model.thirdQuad, second = model.fourthQuad}
             , viewKeyboard
             ]
         )
 
 
-viewQuadRow : Model -> Quad -> Quad -> Element.Element msg
-viewQuadRow model first second =
+
+
+viewQuadRow : QuadRowStyle msg -> QuadRowView -> Element.Element msg
+viewQuadRow style {first, second} =
     Element.row
-        styleAttributes.quadRow
-        [ viewQuad model.maxGuesses model.currentGuess model.guesses first
-        , viewQuad model.maxGuesses model.currentGuess model.guesses second
+        style.elementRow
+        [ viewQuad style.quad first
+        , viewQuad style.quad second
         ]
 
 
@@ -285,8 +345,13 @@ getColor color =
             Element.rgb 0.2157 0.254901 0.3176
 
 
-viewQuad : Int -> String -> List Word -> Quad -> Element.Element msg
-viewQuad totalRows currentGuess guesses quad =
+
+
+
+
+
+viewQuad : QuadStyle msg -> QuadView -> Element.Element msg
+viewQuad style {totalRows, currentGuess, guesses, quad} =
     let
         quadResult =
             let
@@ -326,31 +391,33 @@ viewQuad totalRows currentGuess guesses quad =
 
         quadActive =
             not quadMatched && List.length guesses < totalRows
+
+        numEmptyRows =
+            getNumEmptyRows totalRows quadResult
+
+        currentGuessElement =
+            if quadActive then
+                [ viewCurrentGuess style.currentWord currentGuess ]
+
+              else
+                []
     in
     Element.column
-        styleAttributes.quad
+        style.elementColumn
         (case quadResult of
             QuadResultMiss misses ->
                     (List.concat
-                        [ List.map viewMissedWord misses
-                        , if quadActive then
-                            [ viewCurrentGuess currentGuess ]
-
-                          else
-                            []
-                        , viewEmptyRows (getNumEmptyRows totalRows quadResult)
+                        [ List.map (viewMissedWord style.missedWord) misses
+                        , currentGuessElement
+                        , viewEmptyRow style.emptyRow |> List.repeat numEmptyRows
                         ]
                     )
             QuadResultMatch misses answer ->
                     (List.concat
                         [ List.map viewMissedWord misses
-                        , [ viewAnswer answer ]
-                        , if quadActive then
-                            [ viewCurrentGuess currentGuess ]
-
-                          else
-                            []
-                        , viewEmptyRows (getNumEmptyRows totalRows quadResult)
+                        , [ viewAnswer style.answer answer ]
+                        , currentGuessElement
+                        , viewEmptyRow style.emptyRow |> List.repeat numEmptyRows
                         ]
                     )
         )
@@ -471,21 +538,9 @@ getNumEmptyRows totalRows quadResult =
             totalRows - List.length misses
 
 
-viewEmptyRows : Int -> List (Element.Element msg)
-viewEmptyRows numEmptyRows =
-    case numEmptyRows of
-        0 ->
-            []
-
-        _ ->
-            Element.row
-                [ Background.color (Element.rgb 0.066666 0.094117 0.15294)
-                , Element.width Element.fill
-                , Element.height Element.fill
-                , rounded
-                ]
-                []
-                :: viewEmptyRows (numEmptyRows - 1)
+viewEmptyRow : EmptyRowStyle msg -> Element.Element msg
+viewEmptyRow style =
+    Element.row style.elementRow []
 
 
 viewSubmittedLetter : Element.Color -> Char -> Element.Element msg
@@ -507,8 +562,20 @@ viewSubmittedLetter color letter =
         ]
 
 
-viewCurrentGuess : String -> Element.Element msg
-viewCurrentGuess currentGuess =
+type alias CurrentGuessStyle msg =
+    { elementRow : List (Element.Attribute msg)
+    , currentLetter : CurrentGuessLetterStyle msg
+    , activeEmptyLetter : ActiveEmptyLetterStyle msg
+    , inactiveEmptyLetter : InactiveEmptyLetterStyle msg
+    }
+
+type alias CurrentGuessLetterStyle msg =
+    { elementRow : List (Element.Attribute msg)
+    , elementEl : List (Element.Attribute msg)
+    }
+
+viewCurrentGuess : CurrentGuessStyle msg -> String -> Element.Element msg
+viewCurrentGuess style currentGuess =
     let
         currentGuessLength =
             String.length currentGuess
@@ -519,63 +586,50 @@ viewCurrentGuess currentGuess =
 
             else
                 0
-    in
-    Element.row
-        styleAttributes.letterRow
-        ((String.toList currentGuess |> List.map viewCurrentGuessLetter)
-            ++ viewEmptyLetters numEmptyLetters
-        )
 
+        guessLetters =
+            List.map (viewCurrentGuessLetter style.currentLetter)
+                <| String.toList currentGuess
 
-viewCurrentGuessLetter : Char -> Element.Element msg
-viewCurrentGuessLetter char =
-    Element.row
-        [ Background.color currentGuessLetterColor
-        , Element.width Element.fill
-        , Element.height Element.fill
-        , rounded
-        ]
-        [ Element.el
-            [ Font.color fontColor
-            , Font.center
-            , Element.centerX
-            , Element.centerY
-            ]
-            (char |> String.fromChar >> Element.text)
-        ]
-
-
-viewEmptyLetters : Int -> List (Element.Element msg)
-viewEmptyLetters =
-    viewEmptyLetters_ True
-
-
-viewEmptyLetters_ : Bool -> Int -> List (Element.Element msg)
-viewEmptyLetters_ first numEmptyLetters =
-    if first && numEmptyLetters > 0 then
-        Element.el
-            [ Background.color (Element.rgb 0.13725 0.3137 0.38823)
-            , Element.width Element.fill
-            , Element.height Element.fill
-            , rounded
-            ]
-            Element.none
-            :: viewEmptyLetters_ False (numEmptyLetters - 1)
-
-    else
-        case numEmptyLetters of
-            0 ->
+        emptyLetters =
+            if numEmptyLetters <= 0 then
                 []
+            else
+                viewActiveEmptyLetter style.activeEmptyLetter
+                :: List.repeat
+                    (numEmptyLetters - 1)
+                    (viewInactiveEmptyLetter style.inactiveEmptyLetter)
 
-            _ ->
-                Element.el
-                    [ Background.color currentGuessLetterColor
-                    , Element.width Element.fill
-                    , Element.height Element.fill
-                    , rounded
-                    ]
-                    Element.none
-                    :: viewEmptyLetters_ False (numEmptyLetters - 1)
+    in
+    Element.row style.elementRow (guessLetters ++ emptyLetters)
+
+
+viewCurrentGuessLetter : CurrentGuessLetterStyle msg -> Char -> Element.Element msg
+viewCurrentGuessLetter style char =
+    Element.row
+        style.elementRow
+        [ Element.el
+            style.elementEl
+            (Element.text <| String.fromChar char)
+        ]
+
+
+type alias InactiveEmptyLetterStyle msg =
+    { elementEl : List (Element.Attribute msg)
+    }
+
+
+type alias ActiveEmptyLetterStyle msg =
+    { elementEl : List (Element.Attribute msg)
+    }
+
+viewInactiveEmptyLetter : InactiveEmptyLetterStyle msg -> Element.Element msg
+viewInactiveEmptyLetter style =
+        Element.el style.elementEl Element.none
+
+viewActiveEmptyLetter : InactiveEmptyLetterStyle msg -> Element.Element msg
+viewActiveEmptyLetter style =
+        Element.el style.elementEl Element.none
 
 
 keyStyle =
