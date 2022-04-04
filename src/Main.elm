@@ -19,19 +19,14 @@ import String
 
 
 type alias Model =
-    { firstQuad : Quad
-    , secondQuad : Quad
-    , thirdQuad : Quad
-    , fourthQuad : Quad
+    { firstQuadAnswer : Word
+    , secondQuadAnswer : Word
+    , thirdQuadAnswer : Word
+    , fourthQuadAnswer : Word
     , currentGuess : String
     , maxGuesses : Int
     , guesses : List Word
     , validWords : Set.Set String
-    }
-
-
-type alias Quad =
-    { answer : Word
     }
 
 
@@ -72,10 +67,10 @@ init flags =
                 Err _ ->
                     { allowed = [], answers = [] }
     in
-    ( { firstQuad = { answer = String.toList "TEARS" }
-      , secondQuad = { answer = String.toList "DEARS" }
-      , thirdQuad = { answer = String.toList "DINER" }
-      , fourthQuad = { answer = String.toList "SILLY" }
+    ( { firstQuadAnswer = String.toList "TEARS"
+      , secondQuadAnswer = String.toList "DEARS"
+      , thirdQuadAnswer = String.toList "DINER"
+      , fourthQuadAnswer = String.toList "SILLY"
       , guesses =
             [ String.toList "TEARS"
             , String.toList "FEARS"
@@ -107,27 +102,16 @@ thrupleThird (Thruple _ _ x) =
     x
 
 
-b : (a -> b) -> (a -> c) -> (b -> c -> d) -> a -> d
-b f g e x =
-    e (f x) (g x)
-
-
-bb : (a -> b) -> (c -> d -> a) -> c -> d -> b
-bb f g x y =
-    f (g x y)
-
-
-c : (a -> b) -> (b -> c -> d) -> a -> c -> d
-c f g x y =
-    g (f x) y
-
-
 flip : (a -> b -> c) -> b -> a -> c
 flip f x y =
     f y x
 
 
-dictUpdate : (Maybe v -> Maybe v) -> comparable -> Dict.Dict comparable v -> Dict.Dict comparable v
+dictUpdate :
+    (Maybe v -> Maybe v)
+    -> comparable
+    -> Dict.Dict comparable v
+    -> Dict.Dict comparable v
 dictUpdate f k d =
     Dict.update k f d
 
@@ -228,45 +212,54 @@ styleAttributes =
 
 type alias ModelStyle msg =
     { elementLayout : List (Element.Attribute msg)
-    , quadRow : QuadRowStyle msg
-    }
-
-type alias QuadRowStyle msg =
-    { elementRow : List (Element.Attribute msg)
+    , elementColumn : List (Element.Attribute msg)
+    , elementRow : List (Element.Attribute msg)
     , quad : QuadStyle msg
     }
 
-type alias QuadRowView =
-    { first: QuadView
-    , second: QuadView
-    }
 
 type alias QuadStyle msg =
     { elementColumn : List (Element.Attribute msg)
     , emptyRow : EmptyRowStyle msg
+    , currentWord : CurrentGuessStyle msg
+    , missedWord : MissedWordStyle msg
+    , answer : AnswerStyle msg
     }
 
-type alias QuadView =
-    { totalRows : Int
-    , currentGuess : String
-    , guesses : List Word
-    , quad : Quad
-    }
 
 type alias EmptyRowStyle msg =
     { elementRow : List (Element.Attribute msg)
     }
 
+
 modelStyle : ModelStyle msg
 modelStyle =
     { elementLayout = []
-    , quadRow =
-        { elementRow = []
-        , quad =
-            { elementColumn = []
-            , emptyRow =
+    , elementColumn = []
+    , elementRow = []
+    , quad =
+        { elementColumn = []
+        , emptyRow =
+            { elementRow = []
+            }
+        , currentWord =
+            { elementRow = []
+            , currentLetter =
                 { elementRow = []
+                , elementEl = []
                 }
+            , activeEmptyLetter =
+                { elementEl = []
+                }
+            , inactiveEmptyLetter =
+                { elementEl = []
+                }
+            }
+        , answer =
+            { elementRow = []
+            }
+        , missedWord =
+            { elementRow = []
             }
         }
     }
@@ -274,38 +267,48 @@ modelStyle =
 
 view : Model -> Html.Html Msg
 view model =
-    let
-        quadRowView =
-            { totalRows = model.maxGuesses
-            , currentGuess = model.currentGuess
-            , guesses = model.guesses
-            }
-    in
     Element.layout
         modelStyle.elementLayout
-        Element.lazy viewMod
         (Element.column
-            styleAttributes.topLevelColumn
-            [ viewQuadRow
-                modelStyle.quadRow
-                { quadRowView | first = model.firstQuad }
-            , viewQuadRow
-                modelStyle.quadRow
-                {first = model.thirdQuad, second = model.fourthQuad}
+            modelStyle.elementColumn
+            [ Element.row
+                modelStyle.elementRow
+                [ viewQuad
+                    modelStyle.quad
+                    model.firstQuadAnswer
+                    model.maxGuesses
+                    model.guesses
+                    model.currentGuess
+                -- If viewQuad is lazy, the fact that model.guesses and
+                -- model.currentGuess are passed it means that it won't
+                -- behave lazily because the values passed to the
+                -- function will change. This can be fixed by keeping
+                -- track of if the quad has finished already.
+                , viewQuad
+                    modelStyle.quad
+                    model.secondQuadAnswer
+                    model.maxGuesses
+                    model.guesses
+                    model.currentGuess
+                ]
+            , Element.row
+                modelStyle.elementRow
+                [ viewQuad
+                    modelStyle.quad
+                    model.thirdQuadAnswer
+                    model.maxGuesses
+                    model.guesses
+                    model.currentGuess
+                , viewQuad
+                    modelStyle.quad
+                    model.fourthQuadAnswer
+                    model.maxGuesses
+                    model.guesses
+                    model.currentGuess
+                ]
             , viewKeyboard
             ]
         )
-
-
-
-
-viewQuadRow : QuadRowStyle msg -> QuadRowView -> Element.Element msg
-viewQuadRow style {first, second} =
-    Element.row
-        style.elementRow
-        [ viewQuad style.quad first
-        , viewQuad style.quad second
-        ]
 
 
 type alias GuessMiss =
@@ -345,41 +348,43 @@ getColor color =
             Element.rgb 0.2157 0.254901 0.3176
 
 
-
-
-
-
-
-viewQuad : QuadStyle msg -> QuadView -> Element.Element msg
-viewQuad style {totalRows, currentGuess, guesses, quad} =
+viewQuad :
+    QuadStyle msg
+    -> Word
+    -> Int
+    -> List Word
+    -> String
+    -> Element.Element msg
+viewQuad style quadAnswer totalRows guesses currentGuess =
     let
         quadResult =
             let
-                r = List.foldr
-                    (\guess acc ->
-                        case acc of
-                            QuadResultMatch _ _ ->
-                                acc
+                r =
+                    List.foldr
+                        (\guess acc ->
+                            case acc of
+                                QuadResultMatch _ _ ->
+                                    acc
 
-                            QuadResultMiss misses ->
-                                case checkGuess quad.answer guess of
-                                    GuessResultGuessMatch ->
-                                        QuadResultMatch
-                                            misses
-                                            guess
+                                QuadResultMiss misses ->
+                                    case checkGuess quadAnswer guess of
+                                        GuessResultGuessMatch ->
+                                            QuadResultMatch
+                                                misses
+                                                guess
 
-                                    GuessResultGuessMiss miss ->
-                                        QuadResultMiss (miss :: misses)
-                    )
-                    (QuadResultMiss [])
-                    guesses
+                                        GuessResultGuessMiss miss ->
+                                            QuadResultMiss (miss :: misses)
+                        )
+                        (QuadResultMiss [])
+                        guesses
             in
             case r of
                 QuadResultMatch misses guess ->
                     QuadResultMatch (List.reverse misses) guess
+
                 QuadResultMiss misses ->
                     QuadResultMiss <| List.reverse misses
-
 
         quadMatched =
             case quadResult of
@@ -399,35 +404,39 @@ viewQuad style {totalRows, currentGuess, guesses, quad} =
             if quadActive then
                 [ viewCurrentGuess style.currentWord currentGuess ]
 
-              else
+            else
                 []
     in
     Element.column
         style.elementColumn
         (case quadResult of
             QuadResultMiss misses ->
-                    (List.concat
-                        [ List.map (viewMissedWord style.missedWord) misses
-                        , currentGuessElement
-                        , viewEmptyRow style.emptyRow |> List.repeat numEmptyRows
-                        ]
-                    )
+                List.concat
+                    [ List.map (viewMissedWord style.missedWord) misses
+                    , currentGuessElement
+                    , viewEmptyRow style.emptyRow |> List.repeat numEmptyRows
+                    ]
+
             QuadResultMatch misses answer ->
-                    (List.concat
-                        [ List.map viewMissedWord misses
-                        , [ viewAnswer style.answer answer ]
-                        , currentGuessElement
-                        , viewEmptyRow style.emptyRow |> List.repeat numEmptyRows
-                        ]
-                    )
+                List.concat
+                    [ List.map (viewMissedWord style.missedWord) misses
+                    , [ viewAnswer style.answer answer ]
+                    , currentGuessElement
+                    , viewEmptyRow style.emptyRow |> List.repeat numEmptyRows
+                    ]
         )
 
 
-viewMissedWord : GuessMiss -> Element.Element msg
-viewMissedWord word =
+viewMissedWord : MissedWordStyle msg -> GuessMiss -> Element.Element msg
+viewMissedWord style word =
     Element.row
-        styleAttributes.letterRow
+        style.elementRow
         (List.map viewMissedWordLetter word)
+
+
+type alias MissedWordStyle msg =
+    { elementRow : List (Element.Attribute msg)
+    }
 
 
 viewMissedWordLetter : MissedWordLetter -> Element.Element msg
@@ -449,11 +458,15 @@ viewMissedWordLetter (MissedWordLetter color char) =
         ]
 
 
-viewAnswer : Word -> Element.Element msg
-viewAnswer word =
+viewAnswer : AnswerStyle msg -> Word -> Element.Element msg
+viewAnswer style word =
     Element.row
-        styleAttributes.letterRow
+        style.elementRow
         (List.map viewAnswerLetter word)
+
+type alias AnswerStyle msg =
+    { elementRow : List (Element.Attribute msg)
+    }
 
 
 viewAnswerLetter : Char -> Element.Element msg
@@ -488,40 +501,56 @@ checkGuess answer guess =
 checkMiss : Word -> Word -> GuessMiss
 checkMiss answer guess =
     let
+        numLetters =
+            max (List.length answer) (List.length guess)
+
+        indices =
+            List.range 0 numLetters
+
         greenLetters =
-            let
-                numLetters =
-                    max (List.length answer) (List.length guess)
-            in
             List.foldl
                 (\x acc ->
-                    if b thrupleSecond thrupleThird (==) x then
-                        Set.insert (thrupleFirst x) acc
+                    let
+                        letterIndex =
+                            thrupleFirst x
+
+                        answerLetter =
+                            thrupleSecond x
+
+                        guessLetter =
+                            thrupleThird x
+                    in
+                    if answerLetter == guessLetter then
+                        Set.insert letterIndex acc
 
                     else
                         acc
                 )
                 Set.empty
-                (List.map3 Thruple (List.range 0 numLetters) answer guess)
+                (List.map3 Thruple indices answer guess)
 
         answerCounter =
-            List.map2 Tuple.pair (List.range 0 (List.length answer)) answer
+            List.map2 Tuple.pair indices answer
                 |> List.filter
                     (Tuple.first >> flip Set.member greenLetters >> not)
                 |> List.foldl
-                    (c Tuple.second (dictUpdate incrementCount))
+                    (Tuple.second >> dictUpdate incrementCount)
                     Dict.empty
-        yellowLetters = getYellowLetters answerCounter guess
+
+        yellowLetters =
+            getYellowLetters answerCounter guess
     in
     List.map
-        (\(index, letter) ->
+        (\( index, letter ) ->
             case Set.member index greenLetters of
                 True ->
                     MissedWordLetter Green letter
+
                 False ->
                     case Set.member index yellowLetters of
                         True ->
                             MissedWordLetter Yellow letter
+
                         False ->
                             MissedWordLetter Normal letter
         )
@@ -569,10 +598,12 @@ type alias CurrentGuessStyle msg =
     , inactiveEmptyLetter : InactiveEmptyLetterStyle msg
     }
 
+
 type alias CurrentGuessLetterStyle msg =
     { elementRow : List (Element.Attribute msg)
     , elementEl : List (Element.Attribute msg)
     }
+
 
 viewCurrentGuess : CurrentGuessStyle msg -> String -> Element.Element msg
 viewCurrentGuess style currentGuess =
@@ -588,18 +619,18 @@ viewCurrentGuess style currentGuess =
                 0
 
         guessLetters =
-            List.map (viewCurrentGuessLetter style.currentLetter)
-                <| String.toList currentGuess
+            List.map (viewCurrentGuessLetter style.currentLetter) <|
+                String.toList currentGuess
 
         emptyLetters =
             if numEmptyLetters <= 0 then
                 []
+
             else
                 viewActiveEmptyLetter style.activeEmptyLetter
-                :: List.repeat
-                    (numEmptyLetters - 1)
-                    (viewInactiveEmptyLetter style.inactiveEmptyLetter)
-
+                    :: List.repeat
+                        (numEmptyLetters - 1)
+                        (viewInactiveEmptyLetter style.inactiveEmptyLetter)
     in
     Element.row style.elementRow (guessLetters ++ emptyLetters)
 
@@ -623,13 +654,15 @@ type alias ActiveEmptyLetterStyle msg =
     { elementEl : List (Element.Attribute msg)
     }
 
+
 viewInactiveEmptyLetter : InactiveEmptyLetterStyle msg -> Element.Element msg
 viewInactiveEmptyLetter style =
-        Element.el style.elementEl Element.none
+    Element.el style.elementEl Element.none
+
 
 viewActiveEmptyLetter : InactiveEmptyLetterStyle msg -> Element.Element msg
 viewActiveEmptyLetter style =
-        Element.el style.elementEl Element.none
+    Element.el style.elementEl Element.none
 
 
 keyStyle =
