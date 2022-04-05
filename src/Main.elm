@@ -178,34 +178,13 @@ rounded =
 
 
 styleAttributes =
-    { topLevelNode =
-        [ Background.color (Element.rgb 0.12157 0.16078 0.2157)
-        , Element.paddingXY 700 0
-        ]
-    , topLevelColumn =
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.spacing 7
-        ]
-    , quadRow =
-        [ Element.width (Element.fillPortion 4)
-        , Element.height (Element.fillPortion 4)
-        , Element.spacing 7
-        ]
-    , keyboardRow =
+    { keyboardRow =
         [ Element.width (Element.fillPortion 2)
         , Element.height (Element.fillPortion 2)
         , Element.spacing 7
         ]
-    , quad =
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.spacing 4
-        ]
     , letterRow =
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.spacing 7
+        [
         ]
     }
 
@@ -234,32 +213,113 @@ type alias EmptyRowStyle msg =
 
 modelStyle : ModelStyle msg
 modelStyle =
-    { elementLayout = []
-    , elementColumn = []
-    , elementRow = []
+    { elementLayout =
+        [ Background.color (Element.rgb 0.12157 0.16078 0.2157)
+        , Element.paddingXY 700 0
+        ]
+    , elementColumn =
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.spacing 7
+        ]
+    , elementRow =
+        [ Element.width (Element.fillPortion 4)
+        , Element.height (Element.fillPortion 4)
+        , Element.spacing 7
+        ]
     , quad =
-        { elementColumn = []
+        { elementColumn =
+            [ Element.width Element.fill
+            , Element.height Element.fill
+            , Element.spacing 4
+            ]
         , emptyRow =
-            { elementRow = []
+            { elementRow =
+                [ Background.color (Element.rgb 0.066666 0.094117 0.15294)
+                , Element.width Element.fill
+                , Element.height Element.fill
+                , Element.spacing 4
+                ]
             }
         , currentWord =
-            { elementRow = []
+            { elementRow =
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , Element.spacing 4
+                ]
             , currentLetter =
-                { elementRow = []
-                , elementEl = []
+                { elementRow =
+                    [ Element.width Element.fill
+                    , Element.height Element.fill
+                    , rounded
+                    , Background.color currentGuessLetterColor
+                    ]
+                , elementEl =
+                    [ Font.color fontColor
+                    , Element.centerX
+                    , Element.centerY
+                    , rounded
+                    ]
                 }
             , activeEmptyLetter =
-                { elementEl = []
+                { elementEl =
+                    [ Element.width Element.fill
+                    , Element.height Element.fill
+                    , Element.spacing 4
+                    , rounded
+                    , Background.color (Element.rgb 0.13725 0.3137 0.38823)
+                    ]
                 }
             , inactiveEmptyLetter =
-                { elementEl = []
+                { elementEl =
+                    [ Element.width Element.fill
+                    , Element.height Element.fill
+                    , Element.spacing 4
+                    , rounded
+                    , Background.color currentGuessLetterColor
+                    ]
                 }
             }
         , answer =
-            { elementRow = []
+            { elementRow =
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , Element.spacing 4
+                ]
+            , answerLetter =
+                { elementRow =
+                    [ Background.color (Element.rgb 0.0 1.0 0.0)
+                    , Element.width Element.fill
+                    , Element.height Element.fill
+                    , rounded
+                    ]
+                , elementEl =
+                    [ Font.color fontColor
+                    , Element.centerX
+                    , Element.centerY
+                    , rounded
+                    ]
+                }
             }
         , missedWord =
-            { elementRow = []
+            { elementRow =
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , Element.spacing 4
+                ]
+            , missedWordLetter =
+                { elementRow =
+                    [ Element.width Element.fill
+                    , Element.height Element.fill
+                    , rounded
+                    ]
+                , elementEl =
+                    [ Font.color fontColor
+                    , Element.centerX
+                    , Element.centerY
+                    , rounded
+                    ]
+                }
             }
         }
     }
@@ -431,30 +491,30 @@ viewMissedWord : MissedWordStyle msg -> GuessMiss -> Element.Element msg
 viewMissedWord style word =
     Element.row
         style.elementRow
-        (List.map viewMissedWordLetter word)
+        (List.map (viewMissedWordLetter style.missedWordLetter) word)
 
 
 type alias MissedWordStyle msg =
     { elementRow : List (Element.Attribute msg)
+    , missedWordLetter : MissedWordLetterStyle msg
+    }
+
+type alias MissedWordLetterStyle msg =
+    { elementRow : List (Element.Attribute msg)
+    , elementEl : List (Element.Attribute msg)
     }
 
 
-viewMissedWordLetter : MissedWordLetter -> Element.Element msg
-viewMissedWordLetter (MissedWordLetter color char) =
+viewMissedWordLetter :
+    MissedWordLetterStyle msg
+    -> MissedWordLetter
+    -> Element.Element msg
+viewMissedWordLetter style (MissedWordLetter color char) =
     Element.row
-        [ Background.color (getColor color)
-        , Element.width Element.fill
-        , Element.height Element.fill
-        , rounded
-        ]
+        (Background.color (getColor color) :: style.elementRow)
         [ Element.el
-            [ Font.color fontColor
-            , Font.center
-            , Element.centerX
-            , Element.centerY
-            , rounded
-            ]
-            (char |> String.fromChar >> Element.text)
+            style.elementEl
+            (char |> String.fromChar |> Element.text)
         ]
 
 
@@ -462,28 +522,25 @@ viewAnswer : AnswerStyle msg -> Word -> Element.Element msg
 viewAnswer style word =
     Element.row
         style.elementRow
-        (List.map viewAnswerLetter word)
+        (List.map (viewAnswerLetter style.answerLetter) word)
 
 type alias AnswerStyle msg =
     { elementRow : List (Element.Attribute msg)
+    , answerLetter : AnswerLetterStyle msg
+    }
+
+type alias AnswerLetterStyle msg =
+    { elementRow : List (Element.Attribute msg)
+    , elementEl : List (Element.Attribute msg)
     }
 
 
-viewAnswerLetter : Char -> Element.Element msg
-viewAnswerLetter char =
+viewAnswerLetter : AnswerLetterStyle msg -> Char -> Element.Element msg
+viewAnswerLetter style char =
     Element.row
-        [ Background.color (Element.rgb 0.0 1.0 0.0)
-        , Element.width Element.fill
-        , Element.height Element.fill
-        , rounded
-        ]
+        style.elementRow
         [ Element.el
-            [ Font.color fontColor
-            , Font.center
-            , Element.centerX
-            , Element.centerY
-            , rounded
-            ]
+            style.elementEl
             (char |> String.fromChar >> Element.text)
         ]
 
@@ -570,25 +627,6 @@ getNumEmptyRows totalRows quadResult =
 viewEmptyRow : EmptyRowStyle msg -> Element.Element msg
 viewEmptyRow style =
     Element.row style.elementRow []
-
-
-viewSubmittedLetter : Element.Color -> Char -> Element.Element msg
-viewSubmittedLetter color letter =
-    Element.row
-        [ Background.color color
-        , Element.width Element.fill
-        , Element.height Element.fill
-        , rounded
-        ]
-        [ Element.el
-            [ Font.color fontColor
-            , Font.center
-            , Element.centerX
-            , Element.centerY
-            , rounded
-            ]
-            (letter |> String.fromChar >> Element.text)
-        ]
 
 
 type alias CurrentGuessStyle msg =
