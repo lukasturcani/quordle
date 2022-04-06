@@ -288,7 +288,7 @@ modelStyle =
                 ]
             , answerLetter =
                 { elementRow =
-                    [ Background.color (Element.rgb 0.0 1.0 0.0)
+                    [ Background.color (Element.rgb 0.0 0.8 0.53333)
                     , Element.width Element.fill
                     , Element.height Element.fill
                     , rounded
@@ -399,10 +399,10 @@ getColor : MissedLetterColor -> Element.Color
 getColor color =
     case color of
         Green ->
-            Element.rgb 0.0 1.0 0.0
+            Element.rgb 0.0 0.8 0.53333
 
         Yellow ->
-            Element.rgb 0.8 0.8 0.2
+            Element.rgb 1.0 0.8 0.0
 
         Normal ->
             Element.rgb 0.2157 0.254901 0.3176
