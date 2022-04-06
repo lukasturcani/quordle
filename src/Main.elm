@@ -5,9 +5,9 @@ import Dict
 import Element
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Element.Events as Events
 import Html
 import Json.Decode
 import List
@@ -172,10 +172,6 @@ currentGuessLetterColor =
     Element.rgb 0.29411 0.3333333 0.38823
 
 
-fontColor =
-    Element.rgb 1.0 1.0 1.0
-
-
 rounded =
     Border.rounded 5
 
@@ -187,8 +183,7 @@ styleAttributes =
         , Element.spacing 7
         ]
     , letterRow =
-        [
-        ]
+        []
     }
 
 
@@ -259,8 +254,7 @@ modelStyle =
                     , Background.color currentGuessLetterColor
                     ]
                 , elementEl =
-                    [ Font.color fontColor
-                    , Element.centerX
+                    [ Element.centerX
                     , Element.centerY
                     , rounded
                     ]
@@ -338,10 +332,12 @@ view model =
                 modelStyle.elementRow
                 [ viewQuad
                     modelStyle.quad
+                    model.validWords
                     model.firstQuadAnswer
                     model.maxGuesses
                     model.guesses
                     model.currentGuess
+
                 -- If viewQuad is lazy, the fact that model.guesses and
                 -- model.currentGuess are passed it means that it won't
                 -- behave lazily because the values passed to the
@@ -349,6 +345,7 @@ view model =
                 -- track of if the quad has finished already.
                 , viewQuad
                     modelStyle.quad
+                    model.validWords
                     model.secondQuadAnswer
                     model.maxGuesses
                     model.guesses
@@ -358,12 +355,14 @@ view model =
                 modelStyle.elementRow
                 [ viewQuad
                     modelStyle.quad
+                    model.validWords
                     model.thirdQuadAnswer
                     model.maxGuesses
                     model.guesses
                     model.currentGuess
                 , viewQuad
                     modelStyle.quad
+                    model.validWords
                     model.fourthQuadAnswer
                     model.maxGuesses
                     model.guesses
@@ -424,15 +423,15 @@ getFontColor color =
             Element.rgb 1.0 1.0 1.0
 
 
-
 viewQuad :
     QuadStyle msg
+    -> Set.Set String
     -> Word
     -> Int
     -> List Word
     -> String
     -> Element.Element msg
-viewQuad style quadAnswer totalRows guesses currentGuess =
+viewQuad style validWords quadAnswer totalRows guesses currentGuess =
     let
         quadResult =
             let
@@ -479,7 +478,7 @@ viewQuad style quadAnswer totalRows guesses currentGuess =
 
         currentGuessElement =
             if quadActive then
-                [ viewCurrentGuess style.currentWord currentGuess ]
+                [ viewCurrentGuess style.currentWord validWords currentGuess ]
 
             else
                 []
@@ -516,6 +515,7 @@ type alias MissedWordStyle msg =
     , missedWordLetter : MissedWordLetterStyle msg
     }
 
+
 type alias MissedWordLetterStyle msg =
     { elementRow : List (Element.Attribute msg)
     , elementEl : List (Element.Attribute msg)
@@ -544,10 +544,12 @@ viewAnswer style word =
         style.elementRow
         (List.map (viewAnswerLetter style.answerLetter) word)
 
+
 type alias AnswerStyle msg =
     { elementRow : List (Element.Attribute msg)
     , answerLetter : AnswerLetterStyle msg
     }
+
 
 type alias AnswerLetterStyle msg =
     { elementRow : List (Element.Attribute msg)
@@ -663,8 +665,12 @@ type alias CurrentGuessLetterStyle msg =
     }
 
 
-viewCurrentGuess : CurrentGuessStyle msg -> String -> Element.Element msg
-viewCurrentGuess style currentGuess =
+viewCurrentGuess :
+    CurrentGuessStyle msg
+    -> Set.Set String
+    -> String
+    -> Element.Element msg
+viewCurrentGuess style validWords currentGuess =
     let
         currentGuessLength =
             String.length currentGuess
@@ -689,8 +695,18 @@ viewCurrentGuess style currentGuess =
                     :: List.repeat
                         (numEmptyLetters - 1)
                         (viewInactiveEmptyLetter style.inactiveEmptyLetter)
+
+        fontColor =
+            case String.length currentGuess < 5 || Set.member currentGuess validWords of
+                True ->
+                    Font.color (Element.rgb 1.0 1.0 1.0)
+
+                False ->
+                    Font.color (Element.rgb 1.0 0.114 0.282)
     in
-    Element.row style.elementRow (guessLetters ++ emptyLetters)
+    Element.row
+        (fontColor :: style.elementRow)
+        (guessLetters ++ emptyLetters)
 
 
 viewCurrentGuessLetter : CurrentGuessLetterStyle msg -> Char -> Element.Element msg
@@ -728,7 +744,7 @@ keyStyle =
     , Element.width Element.fill
     , Element.height Element.fill
     , Font.center
-    , Font.color fontColor
+    , Font.color (Element.rgb 1.0 1.0 1.0)
     , rounded
     , Events.onMouseLeave UnhoverButton
     ]
@@ -744,6 +760,7 @@ viewKey hover char =
         (case hover of
             True ->
                 Element.moveUp 4 :: keyStyle_
+
             False ->
                 keyStyle_
         )
@@ -784,6 +801,7 @@ viewKeyboardRow hoverKey keys =
             case hoverKey of
                 Just hoverKey_ ->
                     String.fromChar key == hoverKey_
+
                 Nothing ->
                     False
     in
@@ -799,12 +817,14 @@ viewKeyboardBottomRow hoverKey letters =
             case hoverKey of
                 Just hoverKey_ ->
                     "BKSPC" == hoverKey_
+
                 Nothing ->
                     False
 
         backspaceKeyStyle =
             if isBackspaceHoverKey then
                 Events.onMouseEnter (HoverButton "BKSPC") :: Element.moveUp 4 :: keyStyle
+
             else
                 Events.onMouseEnter (HoverButton "BKSPC") :: keyStyle
 
@@ -812,12 +832,14 @@ viewKeyboardBottomRow hoverKey letters =
             case hoverKey of
                 Just hoverKey_ ->
                     "ENTER" == hoverKey_
+
                 Nothing ->
                     False
 
         enterKeyStyle =
             if isEnterHoverKey then
                 Events.onMouseEnter (HoverButton "ENTER") :: Element.moveUp 4 :: keyStyle
+
             else
                 Events.onMouseEnter (HoverButton "ENTER") :: keyStyle
     in
