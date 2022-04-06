@@ -242,6 +242,7 @@ modelStyle =
                 , Element.width Element.fill
                 , Element.height Element.fill
                 , Element.spacing 4
+                , rounded
                 ]
             }
         , currentWord =
