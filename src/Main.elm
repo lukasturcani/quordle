@@ -7,6 +7,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Element.Events as Events
 import Html
 import Json.Decode
 import List
@@ -27,6 +28,7 @@ type alias Model =
     , maxGuesses : Int
     , guesses : List Word
     , validWords : Set.Set String
+    , hoverButton : Maybe String
     }
 
 
@@ -81,6 +83,7 @@ init flags =
             Set.union
                 (Set.fromList decodedFlags.allowed)
                 (Set.fromList decodedFlags.answers)
+      , hoverButton = Nothing
       }
     , Cmd.none
     )
@@ -365,7 +368,7 @@ view model =
                     model.guesses
                     model.currentGuess
                 ]
-            , viewKeyboard
+            , viewKeyboard model.hoverButton
             ]
         )
 
@@ -726,20 +729,30 @@ keyStyle =
     , Font.center
     , Font.color fontColor
     , rounded
+    , Events.onMouseLeave UnhoverButton
     ]
 
 
-viewKey : Char -> Element.Element Msg
-viewKey char =
+viewKey : Bool -> Char -> Element.Element Msg
+viewKey hover char =
+    let
+        keyStyle_ =
+            Events.onMouseEnter (HoverButton <| String.fromChar char) :: keyStyle
+    in
     Input.button
-        keyStyle
+        (case hover of
+            True ->
+                Element.moveUp 4 :: keyStyle_
+            False ->
+                keyStyle_
+        )
         { onPress = Just (PressKey char)
         , label = char |> String.fromChar >> Element.text
         }
 
 
-viewKeyboard : Element.Element Msg
-viewKeyboard =
+viewKeyboard : Maybe String -> Element.Element Msg
+viewKeyboard hoverKey =
     Element.column
         styleAttributes.keyboardRow
         [ Element.row
@@ -747,37 +760,74 @@ viewKeyboard =
             , Element.width Element.fill
             , Element.spacing 7
             ]
-            ("QWERTYUIOP" |> String.toList >> viewKeyboardRow)
+            ("QWERTYUIOP" |> String.toList >> viewKeyboardRow hoverKey)
         , Element.row
             [ Element.height Element.fill
             , Element.width Element.fill
             , Element.spacing 7
             ]
-            ("ASDFGHJKL" |> String.toList >> viewKeyboardRow)
+            ("ASDFGHJKL" |> String.toList >> viewKeyboardRow hoverKey)
         , Element.row
             [ Element.height Element.fill
             , Element.width Element.fill
             , Element.spacing 7
             ]
-            ("ZXCVBNM" |> String.toList >> viewKeyboardBottomRow)
+            ("ZXCVBNM" |> String.toList >> viewKeyboardBottomRow hoverKey)
         ]
 
 
-viewKeyboardRow : List Char -> List (Element.Element Msg)
-viewKeyboardRow keys =
-    List.map viewKey keys
+viewKeyboardRow : Maybe String -> List Char -> List (Element.Element Msg)
+viewKeyboardRow hoverKey keys =
+    let
+        isHoverKey key =
+            case hoverKey of
+                Just hoverKey_ ->
+                    String.fromChar key == hoverKey_
+                Nothing ->
+                    False
+    in
+    List.map
+        (\key -> viewKey (isHoverKey key) key)
+        keys
 
 
-viewKeyboardBottomRow : List Char -> List (Element.Element Msg)
-viewKeyboardBottomRow letters =
+viewKeyboardBottomRow : Maybe String -> List Char -> List (Element.Element Msg)
+viewKeyboardBottomRow hoverKey letters =
+    let
+        isBackspaceHoverKey =
+            case hoverKey of
+                Just hoverKey_ ->
+                    "BKSPC" == hoverKey_
+                Nothing ->
+                    False
+
+        backspaceKeyStyle =
+            if isBackspaceHoverKey then
+                Events.onMouseEnter (HoverButton "BKSPC") :: Element.moveUp 4 :: keyStyle
+            else
+                Events.onMouseEnter (HoverButton "BKSPC") :: keyStyle
+
+        isEnterHoverKey =
+            case hoverKey of
+                Just hoverKey_ ->
+                    "ENTER" == hoverKey_
+                Nothing ->
+                    False
+
+        enterKeyStyle =
+            if isEnterHoverKey then
+                Events.onMouseEnter (HoverButton "ENTER") :: Element.moveUp 4 :: keyStyle
+            else
+                Events.onMouseEnter (HoverButton "ENTER") :: keyStyle
+    in
     Input.button
-        keyStyle
+        backspaceKeyStyle
         { onPress = Just PressBackspace
         , label = Element.text "BKSPC"
         }
-        :: viewKeyboardRow letters
+        :: viewKeyboardRow hoverKey letters
         ++ [ Input.button
-                keyStyle
+                enterKeyStyle
                 { onPress = Just PressEnter
                 , label = Element.text "ENTER"
                 }
@@ -792,6 +842,8 @@ type Msg
     = PressKey Char
     | PressBackspace
     | PressEnter
+    | HoverButton String
+    | UnhoverButton
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -828,6 +880,16 @@ update msg model =
 
             else
                 ( model, Cmd.none )
+
+        HoverButton id ->
+            ( { model | hoverButton = Just id }
+            , Cmd.none
+            )
+
+        UnhoverButton ->
+            ( { model | hoverButton = Nothing }
+            , Cmd.none
+            )
 
 
 isValidGuess : Set.Set String -> String -> Bool
