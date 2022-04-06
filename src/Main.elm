@@ -294,7 +294,7 @@ modelStyle =
                     , rounded
                     ]
                 , elementEl =
-                    [ Font.color fontColor
+                    [ Font.color (Element.rgb 0.0 0.0 0.0)
                     , Element.centerX
                     , Element.centerY
                     , rounded
@@ -314,8 +314,7 @@ modelStyle =
                     , rounded
                     ]
                 , elementEl =
-                    [ Font.color fontColor
-                    , Element.centerX
+                    [ Element.centerX
                     , Element.centerY
                     , rounded
                     ]
@@ -395,8 +394,8 @@ type QuadResult
     | QuadResultMatch (List GuessMiss) Word
 
 
-getColor : MissedLetterColor -> Element.Color
-getColor color =
+getBackgroundColor : MissedLetterColor -> Element.Color
+getBackgroundColor color =
     case color of
         Green ->
             Element.rgb 0.0 0.8 0.53333
@@ -406,6 +405,20 @@ getColor color =
 
         Normal ->
             Element.rgb 0.2157 0.254901 0.3176
+
+
+getFontColor : MissedLetterColor -> Element.Color
+getFontColor color =
+    case color of
+        Green ->
+            Element.rgb 0.0 0.0 0.0
+
+        Yellow ->
+            Element.rgb 0.0 0.0 0.0
+
+        Normal ->
+            Element.rgb 1.0 1.0 1.0
+
 
 
 viewQuad :
@@ -511,7 +524,10 @@ viewMissedWordLetter :
     -> Element.Element msg
 viewMissedWordLetter style (MissedWordLetter color char) =
     Element.row
-        (Background.color (getColor color) :: style.elementRow)
+        (Background.color (getBackgroundColor color)
+            :: Font.color (getFontColor color)
+            :: style.elementRow
+        )
         [ Element.el
             style.elementEl
             (char |> String.fromChar |> Element.text)
