@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Animator
 import Browser
 import Dict
 import Element
@@ -13,6 +14,7 @@ import Json.Decode
 import List
 import Set
 import String
+import Time
 
 
 
@@ -28,8 +30,18 @@ type alias Model =
     , maxGuesses : Int
     , guesses : List Word
     , validWords : Set.Set String
-    , hoverButton : Maybe String
+    , hoverButton : Animator.Timeline (Maybe String)
     }
+
+
+animator : Animator.Animator Model
+animator =
+    Animator.animator
+        |> Animator.watching
+            .hoverButton
+            (\newHoverButton model ->
+                { model | hoverButton = newHoverButton }
+            )
 
 
 type alias Word =
@@ -58,8 +70,14 @@ init flags =
         decoder =
             Json.Decode.map2
                 Flags
-                (Json.Decode.field "answers" (Json.Decode.list Json.Decode.string))
-                (Json.Decode.field "allowed" (Json.Decode.list Json.Decode.string))
+                (Json.Decode.field
+                    "answers"
+                    (Json.Decode.list Json.Decode.string)
+                )
+                (Json.Decode.field
+                    "allowed"
+                    (Json.Decode.list Json.Decode.string)
+                )
 
         decodedFlags =
             case Json.Decode.decodeValue decoder flags of
@@ -83,7 +101,7 @@ init flags =
             Set.union
                 (Set.fromList decodedFlags.allowed)
                 (Set.fromList decodedFlags.answers)
-      , hoverButton = Nothing
+      , hoverButton = Animator.init Nothing
       }
     , Cmd.none
     )
@@ -151,7 +169,10 @@ getYellowLetters answerCounter guess =
                 { yellowLetters =
                     Set.insert index acc.yellowLetters
                 , answerCounter =
-                    Dict.insert char (letterCount - 1) acc.answerCounter
+                    Dict.insert
+                        char
+                        (letterCount - 1)
+                        acc.answerCounter
                 }
 
             else
@@ -233,7 +254,8 @@ modelStyle =
             ]
         , emptyRow =
             { elementRow =
-                [ Background.color (Element.rgb 0.066666 0.094117 0.15294)
+                [ Background.color
+                    (Element.rgb 0.066666 0.094117 0.15294)
                 , Element.width Element.fill
                 , Element.height Element.fill
                 , Element.spacing 4
@@ -265,7 +287,8 @@ modelStyle =
                     , Element.height Element.fill
                     , Element.spacing 4
                     , rounded
-                    , Background.color (Element.rgb 0.13725 0.3137 0.38823)
+                    , Background.color
+                        (Element.rgb 0.13725 0.3137 0.38823)
                     ]
                 }
             , inactiveEmptyLetter =
@@ -450,7 +473,8 @@ viewQuad style validWords quadAnswer totalRows guesses currentGuess =
                                                 guess
 
                                         GuessResultGuessMiss miss ->
-                                            QuadResultMiss (miss :: misses)
+                                            QuadResultMiss
+                                                (miss :: misses)
                         )
                         (QuadResultMiss [])
                         guesses
@@ -478,7 +502,11 @@ viewQuad style validWords quadAnswer totalRows guesses currentGuess =
 
         currentGuessElement =
             if quadActive then
-                [ viewCurrentGuess style.currentWord validWords currentGuess ]
+                [ viewCurrentGuess
+                    style.currentWord
+                    validWords
+                    currentGuess
+                ]
 
             else
                 []
@@ -490,7 +518,8 @@ viewQuad style validWords quadAnswer totalRows guesses currentGuess =
                 List.concat
                     [ List.map (viewMissedWord style.missedWord) misses
                     , currentGuessElement
-                    , viewEmptyRow style.emptyRow |> List.repeat numEmptyRows
+                    , viewEmptyRow style.emptyRow
+                        |> List.repeat numEmptyRows
                     ]
 
             QuadResultMatch misses answer ->
@@ -498,12 +527,16 @@ viewQuad style validWords quadAnswer totalRows guesses currentGuess =
                     [ List.map (viewMissedWord style.missedWord) misses
                     , [ viewAnswer style.answer answer ]
                     , currentGuessElement
-                    , viewEmptyRow style.emptyRow |> List.repeat numEmptyRows
+                    , viewEmptyRow style.emptyRow
+                        |> List.repeat numEmptyRows
                     ]
         )
 
 
-viewMissedWord : MissedWordStyle msg -> GuessMiss -> Element.Element msg
+viewMissedWord :
+    MissedWordStyle msg
+    -> GuessMiss
+    -> Element.Element msg
 viewMissedWord style word =
     Element.row
         style.elementRow
@@ -611,7 +644,10 @@ checkMiss answer guess =
         answerCounter =
             List.map2 Tuple.pair indices answer
                 |> List.filter
-                    (Tuple.first >> flip Set.member greenLetters >> not)
+                    (Tuple.first
+                        >> flip Set.member greenLetters
+                        >> not
+                    )
                 |> List.foldl
                     (Tuple.second >> dictUpdate incrementCount)
                     Dict.empty
@@ -694,22 +730,30 @@ viewCurrentGuess style validWords currentGuess =
                 viewActiveEmptyLetter style.activeEmptyLetter
                     :: List.repeat
                         (numEmptyLetters - 1)
-                        (viewInactiveEmptyLetter style.inactiveEmptyLetter)
+                        (viewInactiveEmptyLetter
+                            style.inactiveEmptyLetter
+                        )
 
         fontColor =
-            case String.length currentGuess < 5 || Set.member currentGuess validWords of
-                True ->
-                    Font.color (Element.rgb 1.0 1.0 1.0)
+            let
+                incomplete =
+                    String.length currentGuess < 5
+            in
+            if incomplete || Set.member currentGuess validWords then
+                Font.color (Element.rgb 1.0 1.0 1.0)
 
-                False ->
-                    Font.color (Element.rgb 1.0 0.114 0.282)
+            else
+                Font.color (Element.rgb 1.0 0.114 0.282)
     in
     Element.row
         (fontColor :: style.elementRow)
         (guessLetters ++ emptyLetters)
 
 
-viewCurrentGuessLetter : CurrentGuessLetterStyle msg -> Char -> Element.Element msg
+viewCurrentGuessLetter :
+    CurrentGuessLetterStyle msg
+    -> Char
+    -> Element.Element msg
 viewCurrentGuessLetter style char =
     Element.row
         style.elementRow
@@ -729,12 +773,16 @@ type alias ActiveEmptyLetterStyle msg =
     }
 
 
-viewInactiveEmptyLetter : InactiveEmptyLetterStyle msg -> Element.Element msg
+viewInactiveEmptyLetter :
+    InactiveEmptyLetterStyle msg
+    -> Element.Element msg
 viewInactiveEmptyLetter style =
     Element.el style.elementEl Element.none
 
 
-viewActiveEmptyLetter : InactiveEmptyLetterStyle msg -> Element.Element msg
+viewActiveEmptyLetter :
+    InactiveEmptyLetterStyle msg
+    -> Element.Element msg
 viewActiveEmptyLetter style =
     Element.el style.elementEl Element.none
 
@@ -750,26 +798,47 @@ keyStyle =
     ]
 
 
-viewKey : Bool -> Char -> Element.Element Msg
-viewKey hover char =
+isHoverKey : Maybe String -> String -> Bool
+isHoverKey true test =
+    case true of
+        Just hoverKey_ ->
+            hoverKey_ == test
+
+        _ ->
+            False
+
+
+viewKey :
+    Animator.Timeline (Maybe String)
+    -> Char
+    -> Element.Element Msg
+viewKey hoverKey char =
     let
         keyStyle_ =
-            Events.onMouseEnter (HoverButton <| String.fromChar char) :: keyStyle
+            Events.onMouseEnter
+                (HoverButton <| String.fromChar char)
+                :: keyStyle
     in
     Input.button
-        (case hover of
-            True ->
-                Element.moveUp 4 :: keyStyle_
+        (Element.moveUp
+            (Animator.linear
+                hoverKey
+                (\state ->
+                    if isHoverKey state (String.fromChar char) then
+                        Animator.at 4
 
-            False ->
-                keyStyle_
+                    else
+                        Animator.at 0
+                )
+            )
+            :: keyStyle_
         )
         { onPress = Just (PressKey char)
         , label = char |> String.fromChar >> Element.text
         }
 
 
-viewKeyboard : Maybe String -> Element.Element Msg
+viewKeyboard : Animator.Timeline (Maybe String) -> Element.Element Msg
 viewKeyboard hoverKey =
     Element.column
         styleAttributes.keyboardRow
@@ -778,70 +847,70 @@ viewKeyboard hoverKey =
             , Element.width Element.fill
             , Element.spacing 7
             ]
-            ("QWERTYUIOP" |> String.toList >> viewKeyboardRow hoverKey)
+            ("QWERTYUIOP" |> String.toList |> viewKeyboardRow hoverKey)
         , Element.row
             [ Element.height Element.fill
             , Element.width Element.fill
             , Element.spacing 7
             ]
-            ("ASDFGHJKL" |> String.toList >> viewKeyboardRow hoverKey)
+            ("ASDFGHJKL" |> String.toList |> viewKeyboardRow hoverKey)
         , Element.row
             [ Element.height Element.fill
             , Element.width Element.fill
             , Element.spacing 7
             ]
-            ("ZXCVBNM" |> String.toList >> viewKeyboardBottomRow hoverKey)
+            ("ZXCVBNM"
+                |> String.toList
+                |> viewKeyboardBottomRow hoverKey
+            )
         ]
 
 
-viewKeyboardRow : Maybe String -> List Char -> List (Element.Element Msg)
+viewKeyboardRow :
+    Animator.Timeline (Maybe String)
+    -> List Char
+    -> List (Element.Element Msg)
 viewKeyboardRow hoverKey keys =
-    let
-        isHoverKey key =
-            case hoverKey of
-                Just hoverKey_ ->
-                    String.fromChar key == hoverKey_
-
-                Nothing ->
-                    False
-    in
     List.map
-        (\key -> viewKey (isHoverKey key) key)
+        (viewKey hoverKey)
         keys
 
 
-viewKeyboardBottomRow : Maybe String -> List Char -> List (Element.Element Msg)
+viewKeyboardBottomRow :
+    Animator.Timeline (Maybe String)
+    -> List Char
+    -> List (Element.Element Msg)
 viewKeyboardBottomRow hoverKey letters =
     let
-        isBackspaceHoverKey =
-            case hoverKey of
-                Just hoverKey_ ->
-                    "BKSPC" == hoverKey_
-
-                Nothing ->
-                    False
-
         backspaceKeyStyle =
-            if isBackspaceHoverKey then
-                Events.onMouseEnter (HoverButton "BKSPC") :: Element.moveUp 4 :: keyStyle
+            Events.onMouseEnter (HoverButton "BKSPC")
+                :: Element.moveUp
+                    (Animator.linear
+                        hoverKey
+                        (\state ->
+                            if isHoverKey state "BKSPC" then
+                                Animator.at 4
 
-            else
-                Events.onMouseEnter (HoverButton "BKSPC") :: keyStyle
-
-        isEnterHoverKey =
-            case hoverKey of
-                Just hoverKey_ ->
-                    "ENTER" == hoverKey_
-
-                Nothing ->
-                    False
+                            else
+                                Animator.at 0
+                        )
+                    )
+                :: keyStyle
 
         enterKeyStyle =
-            if isEnterHoverKey then
-                Events.onMouseEnter (HoverButton "ENTER") :: Element.moveUp 4 :: keyStyle
+            Events.onMouseEnter (HoverButton "ENTER")
+                :: Element.moveUp
+                    (Animator.linear
+                        hoverKey
+                        (\state ->
+                            if isHoverKey state "ENTER" then
+                                Animator.at 4
 
-            else
-                Events.onMouseEnter (HoverButton "ENTER") :: keyStyle
+                            else
+                                Animator.at 0
+                        )
+                    )
+                :: keyStyle
     in
     Input.button
         backspaceKeyStyle
@@ -867,6 +936,7 @@ type Msg
     | PressEnter
     | HoverButton String
     | UnhoverButton
+    | RuntimeTriggeredAnimationStep Time.Posix
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -876,7 +946,9 @@ update msg model =
             if String.length model.currentGuess < 5 then
                 ( { model
                     | currentGuess =
-                        String.append model.currentGuess (String.fromChar char)
+                        String.append
+                            model.currentGuess
+                            (String.fromChar char)
                   }
                 , Cmd.none
                 )
@@ -890,7 +962,8 @@ update msg model =
 
             else
                 ( { model
-                    | currentGuess = String.dropRight 1 model.currentGuess
+                    | currentGuess =
+                        String.dropRight 1 model.currentGuess
                   }
                 , Cmd.none
                 )
@@ -905,12 +978,29 @@ update msg model =
                 ( model, Cmd.none )
 
         HoverButton id ->
-            ( { model | hoverButton = Just id }
+            ( { model
+                | hoverButton =
+                    Animator.go
+                        Animator.quickly
+                        (Just id)
+                        model.hoverButton
+              }
             , Cmd.none
             )
 
         UnhoverButton ->
-            ( { model | hoverButton = Nothing }
+            ( { model
+                | hoverButton =
+                    Animator.go
+                        Animator.quickly
+                        Nothing
+                        model.hoverButton
+              }
+            , Cmd.none
+            )
+
+        RuntimeTriggeredAnimationStep newTime ->
+            ( Animator.update newTime animator model
             , Cmd.none
             )
 
@@ -942,7 +1032,10 @@ commitGuess model =
 
 
 subscriptions model =
-    Sub.none
+    Animator.toSubscription
+        RuntimeTriggeredAnimationStep
+        model
+        animator
 
 
 
