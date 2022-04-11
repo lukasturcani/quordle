@@ -10,6 +10,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Html
+import Html.Attributes
 import Json.Decode
 import List
 import Set
@@ -26,7 +27,7 @@ type alias Model =
     , secondQuadAnswer : Word
     , thirdQuadAnswer : Word
     , fourthQuadAnswer : Word
-    , currentGuess : String
+    , currentGuess : Animator.Timeline String
     , maxGuesses : Int
     , guesses : List Word
     , validWords : Set.Set String
@@ -41,6 +42,11 @@ animator =
             .hoverButton
             (\newHoverButton model ->
                 { model | hoverButton = newHoverButton }
+            )
+        |> Animator.watching
+            .currentGuess
+            (\newCurrentGuess model ->
+                { model | currentGuess = newCurrentGuess }
             )
 
 
@@ -95,7 +101,7 @@ init flags =
             [ String.toList "TEARS"
             , String.toList "FEARS"
             ]
-      , currentGuess = "ABC"
+      , currentGuess = Animator.init "ABC"
       , maxGuesses = 9
       , validWords =
             Set.union
@@ -452,7 +458,7 @@ viewQuad :
     -> Word
     -> Int
     -> List Word
-    -> String
+    -> Animator.Timeline String
     -> Element.Element msg
 viewQuad style validWords quadAnswer totalRows guesses currentGuess =
     let
@@ -704,12 +710,12 @@ type alias CurrentGuessLetterStyle msg =
 viewCurrentGuess :
     CurrentGuessStyle msg
     -> Set.Set String
-    -> String
+    -> Animator.Timeline String
     -> Element.Element msg
 viewCurrentGuess style validWords currentGuess =
     let
         currentGuessLength =
-            String.length currentGuess
+            String.length currentGuessValue
 
         numEmptyLetters =
             if currentGuessLength < 5 then
@@ -718,9 +724,53 @@ viewCurrentGuess style validWords currentGuess =
             else
                 0
 
-        guessLetters =
-            List.map (viewCurrentGuessLetter style.currentLetter) <|
-                String.toList currentGuess
+        ( initialLetters_, lastLetter_ ) =
+            let
+                lastIndex =
+                    currentGuessLength - 1
+
+                indexedLetters =
+                    List.map2
+                        Tuple.pair
+                        (List.range 0 lastIndex)
+                        (String.toList currentGuessValue)
+
+                ( indexedInitialLetters, indexedLastLetter ) =
+                    List.partition
+                        (\( index, _ ) -> index < lastIndex)
+                        indexedLetters
+            in
+            ( List.map Tuple.second indexedInitialLetters
+            , List.map Tuple.second indexedLastLetter
+            )
+
+        initialLetters =
+            List.map
+                (viewCurrentGuessLetter style.currentLetter)
+                initialLetters_
+
+        lastLetter =
+            let
+                newCurrentLetterStyle =
+                    { elementEl = style.currentLetter.elementEl
+                    , elementRow =
+                        Element.htmlAttribute
+                            (Html.Attributes.style "z-index" "11")
+                            :: Element.scale
+                                (Animator.move
+                                    currentGuess
+                                    (\_ ->
+                                        Animator.once
+                                            Animator.slowly
+                                            (Animator.zigzag 1 1.3)
+                                    )
+                                )
+                            :: style.currentLetter.elementRow
+                    }
+            in
+            List.map
+                (viewCurrentGuessLetter newCurrentLetterStyle)
+                lastLetter_
 
         emptyLetters =
             if numEmptyLetters <= 0 then
@@ -734,12 +784,15 @@ viewCurrentGuess style validWords currentGuess =
                             style.inactiveEmptyLetter
                         )
 
+        currentGuessValue =
+            Animator.current currentGuess
+
         fontColor =
             let
                 incomplete =
-                    String.length currentGuess < 5
+                    String.length currentGuessValue < 5
             in
-            if incomplete || Set.member currentGuess validWords then
+            if incomplete || Set.member currentGuessValue validWords then
                 Font.color (Element.rgb 1.0 1.0 1.0)
 
             else
@@ -747,7 +800,12 @@ viewCurrentGuess style validWords currentGuess =
     in
     Element.row
         (fontColor :: style.elementRow)
-        (guessLetters ++ emptyLetters)
+        (List.concat
+            [ initialLetters
+            , lastLetter
+            , emptyLetters
+            ]
+        )
 
 
 viewCurrentGuessLetter :
@@ -943,12 +1001,16 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         PressKey char ->
-            if String.length model.currentGuess < 5 then
+            if String.length (Animator.current model.currentGuess) < 5 then
                 ( { model
                     | currentGuess =
-                        String.append
+                        Animator.go
+                            Animator.immediately
+                            (String.append
+                                (Animator.current model.currentGuess)
+                                (String.fromChar char)
+                            )
                             model.currentGuess
-                            (String.fromChar char)
                   }
                 , Cmd.none
                 )
@@ -957,19 +1019,25 @@ update msg model =
                 ( model, Cmd.none )
 
         PressBackspace ->
-            if String.length model.currentGuess == 0 then
+            if String.length (Animator.current model.currentGuess) == 0 then
                 ( model, Cmd.none )
 
             else
                 ( { model
                     | currentGuess =
-                        String.dropRight 1 model.currentGuess
+                        Animator.go
+                            Animator.immediately
+                            (String.dropRight
+                                1
+                                (Animator.current model.currentGuess)
+                            )
+                            model.currentGuess
                   }
                 , Cmd.none
                 )
 
         PressEnter ->
-            if isValidGuess model.validWords model.currentGuess then
+            if isValidGuess model.validWords (Animator.current model.currentGuess) then
                 ( commitGuess model
                 , Cmd.none
                 )
@@ -1012,15 +1080,20 @@ isValidGuess allowedWords guess =
 
 commitGuess : Model -> Model
 commitGuess model =
-    case currentWordToWord model.currentGuess of
+    case currentWordToWord (Animator.current model.currentGuess) of
         Just guess ->
             { model
                 | currentGuess =
-                    ""
+                    Animator.go
+                        Animator.immediately
+                        ""
+                        model.currentGuess
                 , guesses =
                     guess :: model.guesses
                 , validWords =
-                    Set.remove model.currentGuess model.validWords
+                    Set.remove
+                        (Animator.current model.currentGuess)
+                        model.validWords
             }
 
         Nothing ->
