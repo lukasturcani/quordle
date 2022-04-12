@@ -544,7 +544,7 @@ viewQuad style validWords quadAnswer totalRows guesses currentGuess =
                     , [ viewAnswer style.answer answer ]
                     , currentGuessElement
                     , viewEmptyRow style.emptyRow
-                        |> List.repeat numEmptyRows
+                        |> List.repeat (numEmptyRows - 1)
                     ]
         )
 
