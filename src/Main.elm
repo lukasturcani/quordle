@@ -363,6 +363,26 @@ modelStyle =
 
 view : Model -> Html.Html Msg
 view model =
+    let
+        summary =
+            { first =
+                { greenLetters = Set.empty
+                , yellowLetters = Set.empty
+                }
+            , second =
+                { greenLetters = Set.empty
+                , yellowLetters = Set.empty
+                }
+            , third =
+                { greenLetters = Set.empty
+                , yellowLetters = Set.empty
+                }
+            , fourth =
+                { greenLetters = Set.empty
+                , yellowLetters = Set.empty
+                }
+            }
+    in
     Element.layout
         modelStyle.elementLayout
         (Element.column
@@ -407,7 +427,7 @@ view model =
                     model.guesses
                     model.currentGuess
                 ]
-            , viewKeyboard model.hoverButton
+            , viewKeyboard summary model.hoverButton
             ]
         )
 
@@ -876,11 +896,43 @@ isHoverKey true test =
             False
 
 
+type alias QuadSummary =
+    { greenLetters : Set.Set Char
+    , yellowLetters : Set.Set Char
+    }
+
+
+type alias KeyboardSummary =
+    { first : QuadSummary
+    , second : QuadSummary
+    , third : QuadSummary
+    , fourth : QuadSummary
+    }
+
+
+getQuadColor : QuadSummary -> Char -> MissedLetterColor
+getQuadColor summary char =
+    if Set.member char summary.greenLetters then
+        Green
+
+    else if Set.member char summary.yellowLetters then
+        Yellow
+
+    else
+        Normal
+
+
 viewKey :
-    Animator.Timeline (Maybe String)
+    KeyboardSummary
+    -> Animator.Timeline (Maybe String)
     -> Char
     -> Element.Element Msg
-viewKey hoverKey char =
+viewKey summary hoverKey char =
+    button summary char
+
+
+
+{--
     let
         keyStyle_ =
             Events.onMouseEnter
@@ -904,10 +956,80 @@ viewKey hoverKey char =
         { onPress = Just (PressKey char)
         , label = char |> String.fromChar >> Element.text
         }
+--}
 
 
-viewKeyboard : Animator.Timeline (Maybe String) -> Element.Element Msg
-viewKeyboard hoverKey =
+button : KeyboardSummary -> Char -> Element.Element Msg
+button summary char =
+    let
+        firstQuadColor =
+            char
+                |> getQuadColor summary.first
+                |> getBackgroundColor
+                |> Background.color
+
+        secondQuadColor =
+            char
+                |> getQuadColor summary.second
+                |> getBackgroundColor
+                |> Background.color
+
+        thirdQuadColor =
+            char
+                |> getQuadColor summary.third
+                |> getBackgroundColor
+                |> Background.color
+
+        fourthQuadColor =
+            char
+                |> getQuadColor summary.fourth
+                |> getBackgroundColor
+                |> Background.color
+
+        elementStyle =
+            [ Element.width Element.fill
+            , Element.height Element.fill
+            ]
+
+        rowStyle =
+            [ Element.width Element.fill
+            , Element.height Element.fill
+            ]
+
+        firstElementStyle =
+            firstQuadColor :: elementStyle
+
+        secondElementStyle =
+            secondQuadColor :: elementStyle
+
+        thirdElementStyle =
+            thirdQuadColor :: elementStyle
+
+        fourthElementStyle =
+            fourthQuadColor :: elementStyle
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        ]
+        [ Element.row
+            rowStyle
+            [ Element.el firstElementStyle Element.none
+            , Element.el secondElementStyle Element.none
+            ]
+        , Element.row
+            rowStyle
+            [ Element.el thirdElementStyle Element.none
+            , Element.el fourthElementStyle Element.none
+            ]
+        ]
+
+
+viewKeyboard :
+    KeyboardSummary
+    -> Animator.Timeline (Maybe String)
+    -> Element.Element Msg
+viewKeyboard summary hoverKey =
     Element.column
         styleAttributes.keyboardRow
         [ Element.row
@@ -915,13 +1037,19 @@ viewKeyboard hoverKey =
             , Element.width Element.fill
             , Element.spacing 7
             ]
-            ("QWERTYUIOP" |> String.toList |> viewKeyboardRow hoverKey)
+            ("QWERTYUIOP"
+                |> String.toList
+                |> viewKeyboardRow summary hoverKey
+            )
         , Element.row
             [ Element.height Element.fill
             , Element.width Element.fill
             , Element.spacing 7
             ]
-            ("ASDFGHJKL" |> String.toList |> viewKeyboardRow hoverKey)
+            ("ASDFGHJKL"
+                |> String.toList
+                |> viewKeyboardRow summary hoverKey
+            )
         , Element.row
             [ Element.height Element.fill
             , Element.width Element.fill
@@ -929,26 +1057,28 @@ viewKeyboard hoverKey =
             ]
             ("ZXCVBNM"
                 |> String.toList
-                |> viewKeyboardBottomRow hoverKey
+                |> viewKeyboardBottomRow summary hoverKey
             )
         ]
 
 
 viewKeyboardRow :
-    Animator.Timeline (Maybe String)
+    KeyboardSummary
+    -> Animator.Timeline (Maybe String)
     -> List Char
     -> List (Element.Element Msg)
-viewKeyboardRow hoverKey keys =
+viewKeyboardRow summary hoverKey keys =
     List.map
-        (viewKey hoverKey)
+        (viewKey summary hoverKey)
         keys
 
 
 viewKeyboardBottomRow :
-    Animator.Timeline (Maybe String)
+    KeyboardSummary
+    -> Animator.Timeline (Maybe String)
     -> List Char
     -> List (Element.Element Msg)
-viewKeyboardBottomRow hoverKey letters =
+viewKeyboardBottomRow summary hoverKey letters =
     let
         backspaceKeyStyle =
             Events.onMouseEnter (HoverButton "BKSPC")
@@ -985,7 +1115,7 @@ viewKeyboardBottomRow hoverKey letters =
         { onPress = Just PressBackspace
         , label = Element.text "BKSPC"
         }
-        :: viewKeyboardRow hoverKey letters
+        :: viewKeyboardRow summary hoverKey letters
         ++ [ Input.button
                 enterKeyStyle
                 { onPress = Just PressEnter
