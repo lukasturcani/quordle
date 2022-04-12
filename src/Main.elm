@@ -1,7 +1,9 @@
 module Main exposing (main)
 
+import Debug
 import Animator
 import Browser
+import Browser.Events
 import Dict
 import Element
 import Element.Background as Background
@@ -32,6 +34,7 @@ type alias Model =
     , guesses : List Word
     , validWords : Set.Set String
     , hoverButton : Animator.Timeline (Maybe String)
+    , windowWidth : Int
     }
 
 
@@ -67,6 +70,7 @@ currentWordToWord currentWord =
 type alias Flags =
     { answers : List String
     , allowed : List String
+    , windowWidth : Int
     }
 
 
@@ -74,7 +78,7 @@ init : Json.Decode.Value -> ( Model, Cmd Msg )
 init flags =
     let
         decoder =
-            Json.Decode.map2
+            Json.Decode.map3
                 Flags
                 (Json.Decode.field
                     "answers"
@@ -84,6 +88,10 @@ init flags =
                     "allowed"
                     (Json.Decode.list Json.Decode.string)
                 )
+                (Json.Decode.field
+                    "windowWidth"
+                    Json.Decode.int
+                )
 
         decodedFlags =
             case Json.Decode.decodeValue decoder flags of
@@ -91,7 +99,7 @@ init flags =
                     decodedWords
 
                 Err _ ->
-                    { allowed = [], answers = [] }
+                    { allowed = [], answers = [], windowWidth = 10 }
     in
     ( { firstQuadAnswer = String.toList "TEARS"
       , secondQuadAnswer = String.toList "DEARS"
@@ -108,6 +116,7 @@ init flags =
                 (Set.fromList decodedFlags.allowed)
                 (Set.fromList decodedFlags.answers)
       , hoverButton = Animator.init Nothing
+      , windowWidth = decodedFlags.windowWidth
       }
     , Cmd.none
     )
@@ -240,10 +249,11 @@ modelStyle : ModelStyle msg
 modelStyle =
     { elementLayout =
         [ Background.color (Element.rgb 0.12157 0.16078 0.2157)
-        , Element.paddingXY 700 0
         ]
     , elementColumn =
-        [ Element.width Element.fill
+        [ Background.color (Element.rgb 0.12157 0.16078 0.2157)
+        , Element.centerX
+        , Element.width <| Element.maximum 600 Element.fill
         , Element.height Element.fill
         , Element.spacing 7
         ]
@@ -995,6 +1005,7 @@ type Msg
     | HoverButton String
     | UnhoverButton
     | RuntimeTriggeredAnimationStep Time.Posix
+    | WindowResize Int Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -1072,6 +1083,11 @@ update msg model =
             , Cmd.none
             )
 
+        WindowResize width height ->
+            ( { model  | windowWidth = width }
+            , Cmd.none
+            )
+
 
 isValidGuess : Set.Set String -> String -> Bool
 isValidGuess allowedWords guess =
@@ -1105,10 +1121,13 @@ commitGuess model =
 
 
 subscriptions model =
-    Animator.toSubscription
-        RuntimeTriggeredAnimationStep
-        model
-        animator
+    Sub.batch
+        [ Animator.toSubscription
+            RuntimeTriggeredAnimationStep
+            model
+            animator
+        , Browser.Events.onResize WindowResize
+        ]
 
 
 
