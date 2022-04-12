@@ -1,9 +1,9 @@
 module Main exposing (main)
 
-import Debug
 import Animator
 import Browser
 import Browser.Events
+import Debug
 import Dict
 import Element
 import Element.Background as Background
@@ -1084,7 +1084,7 @@ update msg model =
             )
 
         WindowResize width height ->
-            ( { model  | windowWidth = width }
+            ( { model | windowWidth = width }
             , Cmd.none
             )
 
