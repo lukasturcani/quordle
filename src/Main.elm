@@ -639,7 +639,7 @@ viewAnswerLetter style char =
 checkGuess : Word -> Word -> GuessResult
 checkGuess answer guess =
     if answer == guess then
-            GuessResultGuessMatch
+        GuessResultGuessMatch
 
     else
         GuessResultGuessMiss (checkMiss answer guess)
