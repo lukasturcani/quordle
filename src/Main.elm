@@ -364,6 +364,18 @@ modelStyle =
 view : Model -> Html.Html Msg
 view model =
     let
+        firstQuadResult =
+            getQuadResult model.firstQuadAnswer model.guesses
+
+        secondQuadResult =
+            getQuadResult model.secondQuadAnswer model.guesses
+
+        thirdQuadResult =
+            getQuadResult model.thirdQuadAnswer model.guesses
+
+        fourthQuadResult =
+            getQuadResult model.fourthQuadAnswer model.guesses
+
         summary =
             { first =
                 { greenLetters = Set.empty
@@ -456,6 +468,23 @@ type QuadResult
     | QuadResultMatch (List GuessMiss) Word
 
 
+getQuadSummary : QuadResult -> QuadSummary
+getQuadSummary quadResult =
+    let
+        guesses =
+            case quadResult of
+                QuadResultMiss guesses_ ->
+                    guesses_
+
+                QuadResultMatch guesses_ _ ->
+                    guesses_
+    in
+    List.foldr
+        (\acc guess -> acc)
+        guesses
+        Set.empty
+
+
 getBackgroundColor : MissedLetterColor -> Element.Color
 getBackgroundColor color =
     case color of
@@ -480,6 +509,38 @@ getFontColor color =
 
         Normal ->
             Element.rgb 1.0 1.0 1.0
+
+
+getQuadResult : Word -> List Word -> QuadResult
+getQuadResult quadAnswer guesses =
+    let
+        r =
+            List.foldr
+                (\guess acc ->
+                    case acc of
+                        QuadResultMatch _ _ ->
+                            acc
+
+                        QuadResultMiss misses ->
+                            case checkGuess quadAnswer guess of
+                                GuessResultGuessMatch ->
+                                    QuadResultMatch
+                                        misses
+                                        guess
+
+                                GuessResultGuessMiss miss ->
+                                    QuadResultMiss
+                                        (miss :: misses)
+                )
+                (QuadResultMiss [])
+                guesses
+    in
+    case r of
+        QuadResultMatch misses guess ->
+            QuadResultMatch (List.reverse misses) guess
+
+        QuadResultMiss misses ->
+            QuadResultMiss <| List.reverse misses
 
 
 viewQuad :
