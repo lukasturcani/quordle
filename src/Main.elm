@@ -638,12 +638,11 @@ viewAnswerLetter style char =
 
 checkGuess : Word -> Word -> GuessResult
 checkGuess answer guess =
-    case answer == guess of
-        True ->
+    if answer == guess then
             GuessResultGuessMatch
 
-        False ->
-            GuessResultGuessMiss (checkMiss answer guess)
+    else
+        GuessResultGuessMiss (checkMiss answer guess)
 
 
 checkMiss : Word -> Word -> GuessMiss
@@ -693,17 +692,14 @@ checkMiss answer guess =
     in
     List.map
         (\( index, letter ) ->
-            case Set.member index greenLetters of
-                True ->
-                    MissedWordLetter Green letter
+            if Set.member index greenLetters then
+                MissedWordLetter Green letter
 
-                False ->
-                    case Set.member index yellowLetters of
-                        True ->
-                            MissedWordLetter Yellow letter
+            else if Set.member index yellowLetters then
+                MissedWordLetter Yellow letter
 
-                        False ->
-                            MissedWordLetter Normal letter
+            else
+                MissedWordLetter Normal letter
         )
         (List.map2 Tuple.pair (List.range 0 (List.length guess)) guess)
 
