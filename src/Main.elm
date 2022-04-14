@@ -980,7 +980,6 @@ keyStyle =
     [ Background.color (Element.rgb 0.4196 0.447 0.50196)
     , Element.width Element.fill
     , Element.height Element.fill
-    , Font.center
     , Font.color (Element.rgb 1.0 1.0 1.0)
     , rounded
     , Events.onMouseLeave UnhoverButton
@@ -1067,14 +1066,7 @@ button :
     -> Char
     -> Element.Element Msg
 button summary hoverKey char =
-    let
-        keyStyle_ =
-            (Events.onClick <| PressKey char)
-                :: Events.onMouseEnter
-                    (HoverButton <| String.fromChar char)
-                :: keyStyle
-    in
-    Element.row
+    Element.el
         (Element.moveUp
             (Animator.linear
                 hoverKey
@@ -1086,15 +1078,13 @@ button summary hoverKey char =
                         Animator.at 0
                 )
             )
-            :: keyStyle_
+            :: (buttonBackground summary char |> Element.behindContent)
+            :: (Events.onClick <| PressKey char)
+            :: Events.onMouseEnter
+                (HoverButton <| String.fromChar char)
+            :: keyStyle
         )
-        [ Element.el
-            [ buttonBackground summary char |> Element.behindContent
-            , Element.width Element.fill
-            , Element.height Element.fill
-            ]
-            (char |> String.fromChar |> Element.text)
-        ]
+        (char |> String.fromChar |> Element.text)
 
 
 buttonBackground : KeyboardSummary -> Char -> Element.Element Msg
