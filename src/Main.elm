@@ -469,10 +469,12 @@ getQuadSummaryFromMiss miss =
                     { acc
                         | greenLetters = Set.insert char acc.greenLetters
                     }
+
                 MissedWordLetter Yellow char ->
                     { acc
                         | yellowLetters = Set.insert char acc.yellowLetters
                     }
+
                 _ ->
                     acc
         )
@@ -496,18 +498,17 @@ getQuadSummary quadResult =
     List.foldr
         (\guess acc ->
             let
-                summary = getQuadSummaryFromMiss guess
+                summary =
+                    getQuadSummaryFromMiss guess
             in
-                { acc
-                    | greenLetters =
-                        Set.union acc.greenLetters summary.greenLetters
-
-                    , yellowLetters =
-                        Set.union
-                            acc.yellowLetters
-                            summary.yellowLetters
-
-                }
+            { acc
+                | greenLetters =
+                    Set.union acc.greenLetters summary.greenLetters
+                , yellowLetters =
+                    Set.union
+                        acc.yellowLetters
+                        summary.yellowLetters
+            }
         )
         { greenLetters = Set.empty
         , yellowLetters = Set.empty
@@ -526,6 +527,19 @@ getBackgroundColor color =
 
         Normal ->
             Element.rgb 0.2157 0.254901 0.3176
+
+
+getKeyboardQuadBackgroundColor : MissedLetterColor -> Element.Color
+getKeyboardQuadBackgroundColor color =
+    case color of
+        Green ->
+            Element.rgb 0.0 0.8 0.53333
+
+        Yellow ->
+            Element.rgb 1.0 0.8 0.0
+
+        Normal ->
+            Element.rgb 0.4196 0.447 0.50196
 
 
 getFontColor : MissedLetterColor -> Element.Color
@@ -1055,8 +1069,9 @@ button :
 button summary hoverKey char =
     let
         keyStyle_ =
-            Events.onMouseEnter
-                (HoverButton <| String.fromChar char)
+            (Events.onClick <| PressKey char)
+                :: Events.onMouseEnter
+                    (HoverButton <| String.fromChar char)
                 :: keyStyle
     in
     Element.row
@@ -1081,31 +1096,32 @@ button summary hoverKey char =
             (char |> String.fromChar |> Element.text)
         ]
 
+
 buttonBackground : KeyboardSummary -> Char -> Element.Element Msg
 buttonBackground summary char =
     let
         firstQuadColor =
             char
                 |> getQuadColor summary.first
-                |> getBackgroundColor
+                |> getKeyboardQuadBackgroundColor
                 |> Background.color
 
         secondQuadColor =
             char
                 |> getQuadColor summary.second
-                |> getBackgroundColor
+                |> getKeyboardQuadBackgroundColor
                 |> Background.color
 
         thirdQuadColor =
             char
                 |> getQuadColor summary.third
-                |> getBackgroundColor
+                |> getKeyboardQuadBackgroundColor
                 |> Background.color
 
         fourthQuadColor =
             char
                 |> getQuadColor summary.fourth
-                |> getBackgroundColor
+                |> getKeyboardQuadBackgroundColor
                 |> Background.color
 
         elementStyle =
