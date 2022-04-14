@@ -984,8 +984,6 @@ keyStyle =
     , rounded
     , Events.onMouseLeave UnhoverButton
     , Element.pointer
-    , Element.centerX
-    , Element.centerY
     ]
 
 
@@ -1068,32 +1066,30 @@ button :
     -> Char
     -> Element.Element Msg
 button summary hoverKey char =
-    Element.row
-        [ Element.height Element.fill
-        , Element.width Element.fill
-        , Element.centerX
-        , Element.centerY
-        ]
-        [Element.el
-            (Element.moveUp
-                (Animator.linear
-                    hoverKey
-                    (\state ->
-                        if isHoverKey state (String.fromChar char) then
-                            Animator.at 4
+    Element.el
+        (Element.moveUp
+            (Animator.linear
+                hoverKey
+                (\state ->
+                    if isHoverKey state (String.fromChar char) then
+                        Animator.at 4
 
-                        else
-                            Animator.at 0
-                    )
+                    else
+                        Animator.at 0
                 )
-                :: (buttonBackground summary char |> Element.behindContent)
-                :: (Events.onClick <| PressKey char)
-                :: Events.onMouseEnter
-                    (HoverButton <| String.fromChar char)
-                :: keyStyle
             )
+            :: (buttonBackground summary char |> Element.behindContent)
+            :: (Events.onClick <| PressKey char)
+            :: Events.onMouseEnter
+                (HoverButton <| String.fromChar char)
+            :: keyStyle
+        )
+        (Element.el
+            [ Element.centerX
+            , Element.centerY
+            ]
             (char |> String.fromChar |> Element.text)
-        ]
+        )
 
 
 buttonBackground : KeyboardSummary -> Char -> Element.Element Msg
