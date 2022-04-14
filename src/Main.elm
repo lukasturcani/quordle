@@ -1134,17 +1134,48 @@ buttonBackground summary char =
             , Element.height Element.fill
             ]
 
+        rounding =
+            6
+
         firstElementStyle =
-            firstQuadColor :: elementStyle
+            Border.roundEach
+                { topLeft = rounding
+                , topRight = 0
+                , bottomLeft = 0
+                , bottomRight = 0
+                }
+                :: firstQuadColor
+                :: elementStyle
 
         secondElementStyle =
-            secondQuadColor :: elementStyle
+            Border.roundEach
+                { topLeft = 0
+                , topRight = rounding
+                , bottomLeft = 0
+                , bottomRight = 0
+                }
+                :: secondQuadColor
+                :: elementStyle
 
         thirdElementStyle =
-            thirdQuadColor :: elementStyle
+            Border.roundEach
+                { topLeft = 0
+                , topRight = 0
+                , bottomLeft = rounding
+                , bottomRight = 0
+                }
+                :: thirdQuadColor
+                :: elementStyle
 
         fourthElementStyle =
-            fourthQuadColor :: elementStyle
+            Border.roundEach
+                { topLeft = 0
+                , topRight = 0
+                , bottomLeft = 0
+                , bottomRight = rounding
+                }
+                :: fourthQuadColor
+                :: elementStyle
     in
     Element.column
         [ Element.width Element.fill
