@@ -980,7 +980,6 @@ keyStyle =
     [ Background.color (Element.rgb 0.4196 0.447 0.50196)
     , Element.width Element.fill
     , Element.height Element.fill
-    , Font.color (Element.rgb 1.0 1.0 1.0)
     , rounded
     , Events.onMouseLeave UnhoverButton
     , Element.pointer
@@ -1082,14 +1081,40 @@ button summary hoverKey char =
             :: (Events.onClick <| PressKey char)
             :: Events.onMouseEnter
                 (HoverButton <| String.fromChar char)
+            :: keyboardLetterFontColor summary char
             :: keyStyle
         )
         (Element.el
             [ Element.centerX
             , Element.centerY
+            , Font.semiBold
+            , Font.size 25
             ]
             (char |> String.fromChar |> Element.text)
         )
+
+
+quadSummaryHasLetter : Char -> QuadSummary -> Bool
+quadSummaryHasLetter char summary =
+    Set.member char summary.greenLetters || Set.member char summary.yellowLetters
+
+
+keyboardLetterFontColor : KeyboardSummary -> Char -> Element.Attribute Msg
+keyboardLetterFontColor summary char =
+    let
+        inQuad =
+            List.any (quadSummaryHasLetter char)
+                [ summary.first
+                , summary.second
+                , summary.third
+                , summary.fourth
+            ]
+    in
+    if inQuad then
+        Font.color (Element.rgb 0.0 0.0 0.0)
+
+    else
+        Font.color (Element.rgb 1.0 1.0 1.0)
 
 
 buttonBackground : KeyboardSummary -> Char -> Element.Element Msg
@@ -1257,6 +1282,7 @@ viewKeyboardBottomRow summary hoverKey letters =
                                 Animator.at 0
                         )
                     )
+                :: Font.color (Element.rgb 1.0 1.0 1.0)
                 :: keyStyle
 
         enterKeyStyle =
@@ -1272,6 +1298,7 @@ viewKeyboardBottomRow summary hoverKey letters =
                                 Animator.at 0
                         )
                     )
+                :: Font.color (Element.rgb 1.0 1.0 1.0)
                 :: keyStyle
     in
     Input.button
