@@ -1015,7 +1015,7 @@ viewKey :
     -> Char
     -> Element.Element Msg
 viewKey summary hoverKey char =
-    button summary char
+    button summary hoverKey char
 
 
 
@@ -1046,8 +1046,42 @@ viewKey summary hoverKey char =
 --}
 
 
-button : KeyboardSummary -> Char -> Element.Element Msg
-button summary char =
+button :
+    KeyboardSummary
+    -> Animator.Timeline (Maybe String)
+    -> Char
+    -> Element.Element Msg
+button summary hoverKey char =
+    let
+        keyStyle_ =
+            Events.onMouseEnter
+                (HoverButton <| String.fromChar char)
+                :: keyStyle
+    in
+    Element.row
+        (Element.moveUp
+            (Animator.linear
+                hoverKey
+                (\state ->
+                    if isHoverKey state (String.fromChar char) then
+                        Animator.at 4
+
+                    else
+                        Animator.at 0
+                )
+            )
+            :: keyStyle_
+        )
+        [ Element.el
+            [ buttonBackground summary char |> Element.behindContent
+            , Element.width Element.fill
+            , Element.height Element.fill
+            ]
+            (char |> String.fromChar |> Element.text)
+        ]
+
+buttonBackground : KeyboardSummary -> Char -> Element.Element Msg
+buttonBackground summary char =
     let
         firstQuadColor =
             char
