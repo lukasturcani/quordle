@@ -970,6 +970,7 @@ keyStyle =
     , Font.color (Element.rgb 1.0 1.0 1.0)
     , rounded
     , Events.onMouseLeave UnhoverButton
+    , Element.pointer
     ]
 
 
