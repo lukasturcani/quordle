@@ -441,13 +441,20 @@ type alias GuessMiss =
 
 
 type MissedWordLetter
-    = MissedWordLetter MissedLetterColor Char
+    = MissedWordLetter GuessedLetterMatch Char
 
 
-type MissedLetterColor
-    = Green
-    | Yellow
-    | Normal
+type GuessedLetterMatch
+    = GuessedLetterMatchExact
+    | GuessedLetterMatchExists
+    | GuessedLetterMatchMissing
+
+
+type LetterMatch
+    = Exact
+    | Exists
+    | Missing
+    | Untested
 
 
 type GuessResult
@@ -465,21 +472,27 @@ getQuadSummaryFromMiss miss =
     List.foldr
         (\guess acc ->
             case guess of
-                MissedWordLetter Green char ->
+                MissedWordLetter GuessedLetterMatchExact char ->
                     { acc
-                        | greenLetters = Set.insert char acc.greenLetters
+                        | greenLetters =
+                            Set.insert char acc.greenLetters
                     }
 
-                MissedWordLetter Yellow char ->
+                MissedWordLetter GuessedLetterMatchExists char ->
                     { acc
-                        | yellowLetters = Set.insert char acc.yellowLetters
+                        | yellowLetters =
+                            Set.insert char acc.yellowLetters
                     }
 
-                _ ->
-                    acc
+                MissedWordLetter GuessedLetterMatchMissing char ->
+                    { acc
+                        | missingLetters =
+                            Set.insert char acc.missingLetters
+                    }
         )
         { greenLetters = Set.empty
         , yellowLetters = Set.empty
+        , missingLetters = Set.empty
         }
         miss
 
@@ -508,50 +521,58 @@ getQuadSummary quadResult =
                     Set.union
                         acc.yellowLetters
                         summary.yellowLetters
+                , missingLetters =
+                    Set.union
+                        acc.missingLetters
+                        summary.missingLetters
             }
         )
         { greenLetters = Set.empty
         , yellowLetters = Set.empty
+        , missingLetters = Set.empty
         }
         guesses
 
 
-getBackgroundColor : MissedLetterColor -> Element.Color
+getBackgroundColor : GuessedLetterMatch -> Element.Color
 getBackgroundColor color =
     case color of
-        Green ->
+        GuessedLetterMatchExact ->
             Element.rgb 0.0 0.8 0.53333
 
-        Yellow ->
+        GuessedLetterMatchExists ->
             Element.rgb 1.0 0.8 0.0
 
-        Normal ->
+        GuessedLetterMatchMissing ->
             Element.rgb 0.2157 0.254901 0.3176
 
 
-getKeyboardQuadBackgroundColor : MissedLetterColor -> Element.Color
-getKeyboardQuadBackgroundColor color =
-    case color of
-        Green ->
+getKeyboardQuadBackgroundColor : LetterMatch -> Element.Color
+getKeyboardQuadBackgroundColor match =
+    case match of
+        Exact ->
             Element.rgb 0.0 0.8 0.53333
 
-        Yellow ->
+        Exists ->
             Element.rgb 1.0 0.8 0.0
 
-        Normal ->
+        Untested ->
             Element.rgb 0.4196 0.447 0.50196
 
+        Missing ->
+            Element.rgb 0.082 0.369 0.459
 
-getFontColor : MissedLetterColor -> Element.Color
+
+getFontColor : GuessedLetterMatch -> Element.Color
 getFontColor color =
     case color of
-        Green ->
+        GuessedLetterMatchExact ->
             Element.rgb 0.0 0.0 0.0
 
-        Yellow ->
+        GuessedLetterMatchExists ->
             Element.rgb 0.0 0.0 0.0
 
-        Normal ->
+        GuessedLetterMatchMissing ->
             Element.rgb 1.0 1.0 1.0
 
 
@@ -798,13 +819,13 @@ checkMiss answer guess =
     List.map
         (\( index, letter ) ->
             if Set.member index greenLetters then
-                MissedWordLetter Green letter
+                MissedWordLetter GuessedLetterMatchExact letter
 
             else if Set.member index yellowLetters then
-                MissedWordLetter Yellow letter
+                MissedWordLetter GuessedLetterMatchExists letter
 
             else
-                MissedWordLetter Normal letter
+                MissedWordLetter GuessedLetterMatchMissing letter
         )
         (List.map2 Tuple.pair (List.range 0 (List.length guess)) guess)
 
@@ -999,6 +1020,7 @@ isHoverKey true test =
 type alias QuadSummary =
     { greenLetters : Set.Set Char
     , yellowLetters : Set.Set Char
+    , missingLetters : Set.Set Char
     }
 
 
@@ -1010,16 +1032,19 @@ type alias KeyboardSummary =
     }
 
 
-getQuadColor : QuadSummary -> Char -> MissedLetterColor
-getQuadColor summary char =
+getLetterMatch : QuadSummary -> Char -> LetterMatch
+getLetterMatch summary char =
     if Set.member char summary.greenLetters then
-        Green
+        Exact
 
     else if Set.member char summary.yellowLetters then
-        Yellow
+        Exists
+
+    else if Set.member char summary.missingLetters then
+        Missing
 
     else
-        Normal
+        Untested
 
 
 viewKey :
@@ -1108,7 +1133,7 @@ keyboardLetterFontColor summary char =
                 , summary.second
                 , summary.third
                 , summary.fourth
-            ]
+                ]
     in
     if inQuad then
         Font.color (Element.rgb 0.0 0.0 0.0)
@@ -1122,25 +1147,25 @@ buttonBackground summary char =
     let
         firstQuadColor =
             char
-                |> getQuadColor summary.first
+                |> getLetterMatch summary.first
                 |> getKeyboardQuadBackgroundColor
                 |> Background.color
 
         secondQuadColor =
             char
-                |> getQuadColor summary.second
+                |> getLetterMatch summary.second
                 |> getKeyboardQuadBackgroundColor
                 |> Background.color
 
         thirdQuadColor =
             char
-                |> getQuadColor summary.third
+                |> getLetterMatch summary.third
                 |> getKeyboardQuadBackgroundColor
                 |> Background.color
 
         fourthQuadColor =
             char
-                |> getQuadColor summary.fourth
+                |> getLetterMatch summary.fourth
                 |> getKeyboardQuadBackgroundColor
                 |> Background.color
 
