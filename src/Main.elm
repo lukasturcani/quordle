@@ -378,21 +378,13 @@ view model =
 
         summary =
             { first =
-                { greenLetters = Set.empty
-                , yellowLetters = Set.empty
-                }
+                getQuadSummary firstQuadResult
             , second =
-                { greenLetters = Set.empty
-                , yellowLetters = Set.empty
-                }
+                getQuadSummary secondQuadResult
             , third =
-                { greenLetters = Set.empty
-                , yellowLetters = Set.empty
-                }
+                getQuadSummary thirdQuadResult
             , fourth =
-                { greenLetters = Set.empty
-                , yellowLetters = Set.empty
-                }
+                getQuadSummary fourthQuadResult
             }
     in
     Element.layout
@@ -468,6 +460,28 @@ type QuadResult
     | QuadResultMatch (List GuessMiss) Word
 
 
+getQuadSummaryFromMiss : GuessMiss -> QuadSummary
+getQuadSummaryFromMiss miss =
+    List.foldr
+        (\guess acc ->
+            case guess of
+                MissedWordLetter Green char ->
+                    { acc
+                        | greenLetters = Set.insert char acc.greenLetters
+                    }
+                MissedWordLetter Yellow char ->
+                    { acc
+                        | yellowLetters = Set.insert char acc.yellowLetters
+                    }
+                _ ->
+                    acc
+        )
+        { greenLetters = Set.empty
+        , yellowLetters = Set.empty
+        }
+        miss
+
+
 getQuadSummary : QuadResult -> QuadSummary
 getQuadSummary quadResult =
     let
@@ -480,9 +494,25 @@ getQuadSummary quadResult =
                     guesses_
     in
     List.foldr
-        (\acc guess -> acc)
+        (\guess acc ->
+            let
+                summary = getQuadSummaryFromMiss guess
+            in
+                { acc
+                    | greenLetters =
+                        Set.union acc.greenLetters summary.greenLetters
+
+                    , yellowLetters =
+                        Set.union
+                            acc.yellowLetters
+                            summary.yellowLetters
+
+                }
+        )
+        { greenLetters = Set.empty
+        , yellowLetters = Set.empty
+        }
         guesses
-        Set.empty
 
 
 getBackgroundColor : MissedLetterColor -> Element.Color
