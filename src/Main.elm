@@ -237,7 +237,7 @@ modelStyle =
     , elementColumn =
         [ Background.color (Element.rgb 0.12157 0.16078 0.2157)
         , Element.centerX
-        , Element.width <| Element.maximum 600 Element.fill
+        , Element.width (Element.maximum 600 Element.fill)
         , Element.height Element.fill
         , Element.spacing 7
         ]
@@ -584,7 +584,7 @@ getQuadResult quadAnswer guesses =
             QuadResultMatch (List.reverse misses) guess
 
         QuadResultMiss misses ->
-            QuadResultMiss <| List.reverse misses
+            QuadResultMiss (List.reverse misses)
 
 
 viewQuad :
@@ -625,7 +625,7 @@ viewQuad style validWords quadAnswer totalRows guesses currentGuess =
                     QuadResultMatch (List.reverse misses) guess
 
                 QuadResultMiss misses ->
-                    QuadResultMiss <| List.reverse misses
+                    QuadResultMiss (List.reverse misses)
 
         quadMatched =
             case quadResult of
@@ -638,8 +638,8 @@ viewQuad style validWords quadAnswer totalRows guesses currentGuess =
         quadActive =
             not quadMatched && List.length guesses < totalRows
 
-        numEmptyRows =
-            getNumEmptyRows totalRows quadResult
+        numEmptyRows_ =
+            numEmptyRows totalRows quadResult
 
         currentGuessElement =
             if quadActive then
@@ -660,7 +660,7 @@ viewQuad style validWords quadAnswer totalRows guesses currentGuess =
                     [ List.map (viewMissedWord style.missedWord) misses
                     , currentGuessElement
                     , viewEmptyRow style.emptyRow
-                        |> List.repeat numEmptyRows
+                        |> List.repeat numEmptyRows_
                     ]
 
             QuadResultMatch misses answer ->
@@ -669,7 +669,7 @@ viewQuad style validWords quadAnswer totalRows guesses currentGuess =
                     , [ viewAnswer style.answer answer ]
                     , currentGuessElement
                     , viewEmptyRow style.emptyRow
-                        |> List.repeat (numEmptyRows - 1)
+                        |> List.repeat (numEmptyRows_ - 1)
                     ]
         )
 
@@ -809,8 +809,8 @@ checkMiss answer guess =
         (List.map2 Tuple.pair (List.range 0 (List.length guess)) guess)
 
 
-getNumEmptyRows : Int -> QuadResult -> Int
-getNumEmptyRows totalRows quadResult =
+numEmptyRows : Int -> QuadResult -> Int
+numEmptyRows totalRows quadResult =
     case quadResult of
         QuadResultMiss misses ->
             totalRows - 1 - List.length misses
@@ -948,7 +948,7 @@ viewCurrentGuessLetter style char =
         style.elementRow
         [ Element.el
             style.elementEl
-            (Element.text <| String.fromChar char)
+            (Element.text (String.fromChar char))
         ]
 
 
@@ -1035,34 +1035,6 @@ viewKey summary hoverKey char =
     button summary hoverKey char
 
 
-
-{--
-    let
-        keyStyle_ =
-            Events.onMouseEnter
-                (HoverButton <| String.fromChar char)
-                :: keyStyle
-    in
-    Input.button
-        (Element.moveUp
-            (Animator.linear
-                hoverKey
-                (\state ->
-                    if isHoverKey state (String.fromChar char) then
-                        Animator.at 4
-
-                    else
-                        Animator.at 0
-                )
-            )
-            :: keyStyle_
-        )
-        { onPress = Just (PressKey char)
-        , label = char |> String.fromChar >> Element.text
-        }
---}
-
-
 button :
     KeyboardSummary
     -> Animator.Timeline (Maybe String)
@@ -1082,9 +1054,8 @@ button summary hoverKey char =
                 )
             )
             :: (buttonBackground summary char |> Element.behindContent)
-            :: (Events.onClick <| PressKey char)
-            :: Events.onMouseEnter
-                (HoverButton <| String.fromChar char)
+            :: Events.onClick (PressKey char)
+            :: Events.onMouseEnter (HoverButton (String.fromChar char))
             :: keyboardLetterFontColor summary char
             :: keyStyle
         )
