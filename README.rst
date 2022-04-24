@@ -14,4 +14,4 @@ To set up live reloading, run:
 
 .. code-block:: sh
 
-    npx elm-live src/Main.elm -o -e node_modules/.bin/elm -- --optimize --output=output/elm.js
+    npm run elm-live
