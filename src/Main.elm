@@ -713,7 +713,7 @@ viewMissedWordLetter style (MissedWordLetter color char) =
 
 
 viewAnswer : AnswerStyle msg -> Word -> Element.Element msg
-viewAnswer style answer  =
+viewAnswer style answer =
     Element.row
         style.elementRow
         (List.map (viewAnswerLetter style.answerLetter) answer)
@@ -755,8 +755,9 @@ checkGuess answer guess =
         GuessResultGuessMiss (checkMiss answer guess)
 
 
-tuple3 : a -> b -> c -> (a, b, c)
-tuple3 first second third = (first, second, third)
+tuple3 : a -> b -> c -> ( a, b, c )
+tuple3 first second third =
+    ( first, second, third )
 
 
 checkMiss : Word -> Word -> GuessMiss
@@ -770,7 +771,7 @@ checkMiss answer guess =
 
         greenLetters =
             List.foldl
-                (\(letterIndex, answerLetter, guessLetter) acc ->
+                (\( letterIndex, answerLetter, guessLetter ) acc ->
                     if answerLetter == guessLetter then
                         Set.insert letterIndex acc
 
