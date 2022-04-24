@@ -420,7 +420,7 @@ view model =
         )
 
 
-type alias GuessMiss =
+type alias MissedWord =
     List MissedWordLetter
 
 
@@ -442,11 +442,11 @@ type LetterMatch
 
 
 type QuadResult
-    = QuadResultMiss (List GuessMiss)
-    | QuadResultMatch (List GuessMiss) Word
+    = QuadResultMiss (List MissedWord)
+    | QuadResultMatch (List MissedWord) Word
 
 
-getQuadSummaryFromMiss : GuessMiss -> QuadSummary
+getQuadSummaryFromMiss : MissedWord -> QuadSummary
 getQuadSummaryFromMiss miss =
     List.foldr
         (\guess acc ->
@@ -676,7 +676,7 @@ viewQuad style validWords quadAnswer totalRows guesses currentGuess =
 
 viewMissedWord :
     MissedWordStyle msg
-    -> GuessMiss
+    -> MissedWord
     -> Element.Element msg
 viewMissedWord style missedWord =
     Element.row
@@ -743,7 +743,7 @@ viewAnswerLetter style char =
 
 type GuessResult
     = GuessResultGuessMatch
-    | GuessResultGuessMiss GuessMiss
+    | GuessResultGuessMiss MissedWord
 
 
 checkGuess : Word -> Word -> GuessResult
@@ -760,7 +760,7 @@ tuple3 first second third =
     ( first, second, third )
 
 
-checkMiss : Word -> Word -> GuessMiss
+checkMiss : Word -> Word -> MissedWord
 checkMiss answer guess =
     let
         numLetters =
