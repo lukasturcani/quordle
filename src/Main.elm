@@ -435,10 +435,10 @@ type GuessedLetterMatch
 
 
 type LetterMatch
-    = Exact
-    | Exists
-    | Missing
-    | Untested
+    = LetterMatchExact
+    | LetterMatchExists
+    | LetterMatchMissing
+    | LetterMatchUntested
 
 
 type QuadResult
@@ -453,25 +453,25 @@ getQuadSummaryFromMiss miss =
             case guess of
                 MissedWordLetter GuessedLetterMatchExact char ->
                     { acc
-                        | greenLetters =
-                            Set.insert char acc.greenLetters
+                        | knownPositionLetters =
+                            Set.insert char acc.knownPositionLetters
                     }
 
                 MissedWordLetter GuessedLetterMatchExists char ->
                     { acc
-                        | yellowLetters =
-                            Set.insert char acc.yellowLetters
+                        | knownPresentLetters =
+                            Set.insert char acc.knownPresentLetters
                     }
 
                 MissedWordLetter GuessedLetterMatchMissing char ->
                     { acc
-                        | missingLetters =
-                            Set.insert char acc.missingLetters
+                        | knownMissingLetters =
+                            Set.insert char acc.knownMissingLetters
                     }
         )
-        { greenLetters = Set.empty
-        , yellowLetters = Set.empty
-        , missingLetters = Set.empty
+        { knownPositionLetters = Set.empty
+        , knownPresentLetters = Set.empty
+        , knownMissingLetters = Set.empty
         }
         miss
 
@@ -494,21 +494,23 @@ getQuadSummary quadResult =
                     getQuadSummaryFromMiss guess
             in
             { acc
-                | greenLetters =
-                    Set.union acc.greenLetters summary.greenLetters
-                , yellowLetters =
+                | knownPositionLetters =
                     Set.union
-                        acc.yellowLetters
-                        summary.yellowLetters
-                , missingLetters =
+                        acc.knownPositionLetters
+                        summary.knownPositionLetters
+                , knownPresentLetters =
                     Set.union
-                        acc.missingLetters
-                        summary.missingLetters
+                        acc.knownPresentLetters
+                        summary.knownPresentLetters
+                , knownMissingLetters =
+                    Set.union
+                        acc.knownMissingLetters
+                        summary.knownMissingLetters
             }
         )
-        { greenLetters = Set.empty
-        , yellowLetters = Set.empty
-        , missingLetters = Set.empty
+        { knownPositionLetters = Set.empty
+        , knownPresentLetters = Set.empty
+        , knownMissingLetters = Set.empty
         }
         guesses
 
@@ -529,16 +531,16 @@ getBackgroundColor color =
 getKeyboardQuadBackgroundColor : LetterMatch -> Element.Color
 getKeyboardQuadBackgroundColor match =
     case match of
-        Exact ->
+        LetterMatchExact ->
             Element.rgb 0.0 0.8 0.53333
 
-        Exists ->
+        LetterMatchExists ->
             Element.rgb 1.0 0.8 0.0
 
-        Untested ->
+        LetterMatchUntested ->
             Element.rgb 0.4196 0.447 0.50196
 
-        Missing ->
+        LetterMatchMissing ->
             Element.rgb 0.082 0.369 0.459
 
 
@@ -997,9 +999,9 @@ isHoverKey true test =
 
 
 type alias QuadSummary =
-    { greenLetters : Set.Set Char
-    , yellowLetters : Set.Set Char
-    , missingLetters : Set.Set Char
+    { knownPositionLetters : Set.Set Char
+    , knownPresentLetters : Set.Set Char
+    , knownMissingLetters : Set.Set Char
     }
 
 
@@ -1013,17 +1015,17 @@ type alias KeyboardSummary =
 
 getLetterMatch : QuadSummary -> Char -> LetterMatch
 getLetterMatch summary char =
-    if Set.member char summary.greenLetters then
-        Exact
+    if Set.member char summary.knownPositionLetters then
+        LetterMatchExact
 
-    else if Set.member char summary.yellowLetters then
-        Exists
+    else if Set.member char summary.knownPresentLetters then
+        LetterMatchExists
 
-    else if Set.member char summary.missingLetters then
-        Missing
+    else if Set.member char summary.knownMissingLetters then
+        LetterMatchMissing
 
     else
-        Untested
+        LetterMatchUntested
 
 
 viewKey :
@@ -1071,7 +1073,7 @@ button summary hoverKey char =
 
 quadSummaryHasLetter : Char -> QuadSummary -> Bool
 quadSummaryHasLetter char summary =
-    Set.member char summary.greenLetters || Set.member char summary.yellowLetters
+    Set.member char summary.knownPositionLetters || Set.member char summary.knownPresentLetters
 
 
 keyboardLetterFontColor : KeyboardSummary -> Char -> Element.Attribute Msg
