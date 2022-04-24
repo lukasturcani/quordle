@@ -57,11 +57,11 @@ type alias Word =
     List Char
 
 
-currentWordToWord : String -> Maybe Word
-currentWordToWord currentWord =
-    case String.toList currentWord of
-        firstLetter :: secondLetter :: thirdLetter :: fourthLetter :: fifthLetter :: _ ->
-            Just [ firstLetter, secondLetter, thirdLetter, fourthLetter, fifthLetter ]
+word : String -> Maybe Word
+word string =
+    case String.toList string of
+        first :: second :: third :: fourth :: fifth :: _ ->
+            Just [ first, second, third, fourth, fifth ]
 
         _ ->
             Nothing
@@ -699,10 +699,10 @@ viewMissedWord :
     MissedWordStyle msg
     -> GuessMiss
     -> Element.Element msg
-viewMissedWord style word =
+viewMissedWord style missedWord =
     Element.row
         style.elementRow
-        (List.map (viewMissedWordLetter style.missedWordLetter) word)
+        (List.map (viewMissedWordLetter style.missedWordLetter) missedWord)
 
 
 type alias MissedWordStyle msg =
@@ -734,10 +734,10 @@ viewMissedWordLetter style (MissedWordLetter color char) =
 
 
 viewAnswer : AnswerStyle msg -> Word -> Element.Element msg
-viewAnswer style word =
+viewAnswer style answer  =
     Element.row
         style.elementRow
-        (List.map (viewAnswerLetter style.answerLetter) word)
+        (List.map (viewAnswerLetter style.answerLetter) answer)
 
 
 type alias AnswerStyle msg =
@@ -1442,7 +1442,7 @@ isValidGuess allowedWords guess =
 
 commitGuess : Model -> Model
 commitGuess model =
-    case currentWordToWord (Animator.current model.currentGuess) of
+    case word (Animator.current model.currentGuess) of
         Just guess ->
             { model
                 | currentGuess =
