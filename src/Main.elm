@@ -122,22 +122,6 @@ init flags =
     )
 
 
-type Thruple a b c
-    = Thruple a b c
-
-
-thrupleFirst (Thruple x _ _) =
-    x
-
-
-thrupleSecond (Thruple _ x _) =
-    x
-
-
-thrupleThird (Thruple _ _ x) =
-    x
-
-
 flip : (a -> b -> c) -> b -> a -> c
 flip f x y =
     f y x
@@ -457,11 +441,6 @@ type LetterMatch
     | Untested
 
 
-type GuessResult
-    = GuessResultGuessMatch
-    | GuessResultGuessMiss GuessMiss
-
-
 type QuadResult
     = QuadResultMiss (List GuessMiss)
     | QuadResultMatch (List GuessMiss) Word
@@ -762,6 +741,11 @@ viewAnswerLetter style char =
         ]
 
 
+type GuessResult
+    = GuessResultGuessMatch
+    | GuessResultGuessMiss GuessMiss
+
+
 checkGuess : Word -> Word -> GuessResult
 checkGuess answer guess =
     if answer == guess then
@@ -769,6 +753,10 @@ checkGuess answer guess =
 
     else
         GuessResultGuessMiss (checkMiss answer guess)
+
+
+tuple3 : a -> b -> c -> (a, b, c)
+tuple3 first second third = (first, second, third)
 
 
 checkMiss : Word -> Word -> GuessMiss
@@ -782,17 +770,7 @@ checkMiss answer guess =
 
         greenLetters =
             List.foldl
-                (\x acc ->
-                    let
-                        letterIndex =
-                            thrupleFirst x
-
-                        answerLetter =
-                            thrupleSecond x
-
-                        guessLetter =
-                            thrupleThird x
-                    in
+                (\(letterIndex, answerLetter, guessLetter) acc ->
                     if answerLetter == guessLetter then
                         Set.insert letterIndex acc
 
@@ -800,7 +778,7 @@ checkMiss answer guess =
                         acc
                 )
                 Set.empty
-                (List.map3 Thruple indices answer guess)
+                (List.map3 tuple3 indices answer guess)
 
         answerCounter =
             List.map2 Tuple.pair indices answer
