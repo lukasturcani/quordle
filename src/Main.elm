@@ -109,7 +109,7 @@ init flags =
             [ String.toList "TEARS"
             , String.toList "FEARS"
             ]
-      , currentGuess = Animator.init "ABC"
+      , currentGuess = Animator.init "ABDC"
       , maxGuesses = 9
       , validWords =
             Set.union
