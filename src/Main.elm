@@ -188,30 +188,12 @@ getYellowLetters answerCounter guess =
 -- VIEW
 
 
-currentGuessLetterColor =
-    Element.rgb 0.29411 0.3333333 0.38823
-
-
-rounded =
-    Border.rounded 5
-
-
-styleAttributes =
-    { keyboardRow =
-        [ Element.width (Element.fillPortion 2)
-        , Element.height (Element.fillPortion 2)
-        , Element.spacing 7
-        ]
-    , letterRow =
-        []
-    }
-
-
 type alias ModelStyle msg =
     { elementLayout : List (Element.Attribute msg)
     , elementColumn : List (Element.Attribute msg)
     , elementRow : List (Element.Attribute msg)
     , quad : QuadStyle msg
+    , keyboard : KeyboardStyle msg
     }
 
 
@@ -228,9 +210,40 @@ type alias EmptyRowStyle msg =
     { elementRow : List (Element.Attribute msg)
     }
 
+type alias KeyboardStyle msg =
+    { keyboardRow : KeyboardRowStyle msg
+    , keyboardBottomRow : KeyboardBottomRowStyle msg
+    , elementColumn : List (Element.Attribute msg)
+    }
 
-modelStyle : ModelStyle msg
+
+type alias KeyboardRowStyle msg =
+    { key : KeyStyle msg
+    }
+
+
+type alias KeyboardBottomRowStyle msg =
+    { key : KeyStyle msg
+    , elementButton : List (Element.Attribute msg)
+    , keyboardRow : KeyboardRowStyle msg
+    }
+
+
+type alias KeyStyle msg =
+    { elementEl : List (Element.Attribute msg)
+    }
+
+
+modelStyle : ModelStyle Msg
 modelStyle =
+    let
+        currentGuessLetterColor =
+            Element.rgb 0.29411 0.3333333 0.38823
+
+        rounded =
+            Border.rounded 5
+
+    in
     { elementLayout =
         [ Background.color (Element.rgb 0.12157 0.16078 0.2157)
         ]
@@ -342,6 +355,36 @@ modelStyle =
                 }
             }
         }
+    , keyboard =
+        let
+            buttonAttributes =
+                [ Background.color (Element.rgb 0.4196 0.447 0.50196)
+                , Element.width Element.fill
+                , Element.height Element.fill
+                , rounded
+                , Events.onMouseLeave UnhoverButton
+                , Element.pointer
+                ]
+            key =
+                { elementEl = buttonAttributes
+                }
+        in
+        { elementColumn =
+            [ Element.width (Element.fillPortion 2)
+            , Element.height (Element.fillPortion 2)
+            , Element.spacing 7
+            ]
+        , keyboardRow =
+            { key = key
+            }
+        , keyboardBottomRow =
+            { key = key
+            , keyboardRow =
+                { key = key
+                }
+            , elementButton = buttonAttributes
+            }
+        }
     }
 
 
@@ -415,7 +458,7 @@ view model =
                     model.guesses
                     model.currentGuess
                 ]
-            , viewKeyboard summary model.hoverButton
+            , viewKeyboard modelStyle.keyboard summary model.hoverButton
             ]
         )
 
@@ -978,14 +1021,6 @@ viewActiveEmptyLetter style =
     Element.el style.elementEl Element.none
 
 
-keyStyle =
-    [ Background.color (Element.rgb 0.4196 0.447 0.50196)
-    , Element.width Element.fill
-    , Element.height Element.fill
-    , rounded
-    , Events.onMouseLeave UnhoverButton
-    , Element.pointer
-    ]
 
 
 isHoverKey : Maybe String -> String -> Bool
@@ -1029,20 +1064,22 @@ getLetterMatch summary char =
 
 
 viewKey :
-    KeyboardSummary
+    KeyStyle Msg
+    -> KeyboardSummary
     -> Animator.Timeline (Maybe String)
     -> Char
     -> Element.Element Msg
-viewKey summary hoverKey char =
-    button summary hoverKey char
+viewKey style summary hoverKey char =
+    button style summary hoverKey char
 
 
 button :
-    KeyboardSummary
+    KeyStyle Msg
+    -> KeyboardSummary
     -> Animator.Timeline (Maybe String)
     -> Char
     -> Element.Element Msg
-button summary hoverKey char =
+button style summary hoverKey char =
     Element.el
         (Element.moveUp
             (Animator.linear
@@ -1059,7 +1096,7 @@ button summary hoverKey char =
             :: Events.onClick (PressKey char)
             :: Events.onMouseEnter (HoverButton (String.fromChar char))
             :: keyboardLetterFontColor summary char
-            :: keyStyle
+            :: style.elementEl
         )
         (Element.el
             [ Element.centerX
@@ -1192,12 +1229,13 @@ buttonBackground summary char =
 
 
 viewKeyboard :
-    KeyboardSummary
+    KeyboardStyle Msg
+    -> KeyboardSummary
     -> Animator.Timeline (Maybe String)
     -> Element.Element Msg
-viewKeyboard summary hoverKey =
+viewKeyboard style summary hoverKey =
     Element.column
-        styleAttributes.keyboardRow
+        style.elementColumn
         [ Element.row
             [ Element.height Element.fill
             , Element.width Element.fill
@@ -1205,7 +1243,7 @@ viewKeyboard summary hoverKey =
             ]
             ("QWERTYUIOP"
                 |> String.toList
-                |> viewKeyboardRow summary hoverKey
+                |> viewKeyboardRow style.keyboardRow summary hoverKey
             )
         , Element.row
             [ Element.height Element.fill
@@ -1214,7 +1252,7 @@ viewKeyboard summary hoverKey =
             ]
             ("ASDFGHJKL"
                 |> String.toList
-                |> viewKeyboardRow summary hoverKey
+                |> viewKeyboardRow style.keyboardRow summary hoverKey
             )
         , Element.row
             [ Element.height Element.fill
@@ -1223,28 +1261,33 @@ viewKeyboard summary hoverKey =
             ]
             ("ZXCVBNM"
                 |> String.toList
-                |> viewKeyboardBottomRow summary hoverKey
+                |> viewKeyboardBottomRow
+                    style.keyboardBottomRow
+                    summary
+                    hoverKey
             )
         ]
 
 
 viewKeyboardRow :
-    KeyboardSummary
+    KeyboardRowStyle Msg
+    -> KeyboardSummary
     -> Animator.Timeline (Maybe String)
     -> List Char
     -> List (Element.Element Msg)
-viewKeyboardRow summary hoverKey keys =
+viewKeyboardRow style summary hoverKey keys =
     List.map
-        (viewKey summary hoverKey)
+        (viewKey style.key summary hoverKey)
         keys
 
 
 viewKeyboardBottomRow :
-    KeyboardSummary
+    KeyboardBottomRowStyle Msg
+    -> KeyboardSummary
     -> Animator.Timeline (Maybe String)
     -> List Char
     -> List (Element.Element Msg)
-viewKeyboardBottomRow summary hoverKey letters =
+viewKeyboardBottomRow style summary hoverKey letters =
     let
         backspaceKeyStyle =
             Events.onMouseEnter (HoverButton "BKSPC")
@@ -1260,7 +1303,7 @@ viewKeyboardBottomRow summary hoverKey letters =
                         )
                     )
                 :: Font.color (Element.rgb 1.0 1.0 1.0)
-                :: keyStyle
+                :: style.elementButton
 
         enterKeyStyle =
             Events.onMouseEnter (HoverButton "ENTER")
@@ -1276,14 +1319,14 @@ viewKeyboardBottomRow summary hoverKey letters =
                         )
                     )
                 :: Font.color (Element.rgb 1.0 1.0 1.0)
-                :: keyStyle
+                :: style.elementButton
     in
     Input.button
         backspaceKeyStyle
         { onPress = Just PressBackspace
         , label = Element.text "BKSPC"
         }
-        :: viewKeyboardRow summary hoverKey letters
+        :: viewKeyboardRow style.keyboardRow summary hoverKey letters
         ++ [ Input.button
                 enterKeyStyle
                 { onPress = Just PressEnter
