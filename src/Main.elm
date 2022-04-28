@@ -362,17 +362,18 @@ modelStyle =
         let
             buttonAttributes =
                 [ Background.color (Element.rgb 0.4196 0.447 0.50196)
-                , Element.width (Element.maximum 40 Element.fill)
-                , Element.height (Element.maximum 40 Element.fill)
+                , Element.width (Element.minimum 55 (Element.maximum 55 Element.fill))
+                , Element.height (Element.minimum 55 (Element.maximum 55 Element.fill))
                 , rounded
                 , Events.onMouseLeave UnhoverButton
                 , Element.pointer
+                , Element.centerX
                 ]
 
             iconButtonAttributes =
                 buttonAttributes ++
-                [ Element.width (Element.maximum 80 Element.fill)
-                , Element.height (Element.maximum 40 Element.fill)
+                [ Element.width (Element.minimum 70 (Element.maximum 70 Element.fill))
+                , Element.height (Element.minimum 55 (Element.maximum 55 Element.fill))
                 ]
 
             key =
@@ -382,7 +383,7 @@ modelStyle =
             elementRow =
                 [ Element.height Element.fill
                 , Element.width Element.fill
-                , Element.spacing 7
+                , Element.spacing 4
                 ]
         in
         { elementColumn =
@@ -1395,13 +1396,24 @@ viewKeyboardBottomRow style summary hoverKey letters =
     Input.button
         backspaceKeyStyle
         { onPress = Just PressBackspace
-        , label = Element.text "BKSPC"
+        , label =
+            Element.image
+                []
+                { src = ""
+                , description = "BACKSPACE"
+                }
+
         }
         :: viewKeyboardRow style.keyboardRow summary hoverKey letters
         ++ [ Input.button
                 enterKeyStyle
                 { onPress = Just PressEnter
-                , label = Element.text "ENTER"
+                , label =
+                    Element.image
+                        []
+                        { src= ""
+                        , description = "ENTER"
+                        }
                 }
            ]
 
