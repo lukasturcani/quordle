@@ -1398,8 +1398,10 @@ viewKeyboardBottomRow style summary hoverKey letters =
         { onPress = Just PressBackspace
         , label =
             Element.image
-                []
-                { src = ""
+                [ Element.width (Element.maximum 40 Element.fill)
+                , Element.height (Element.maximum 40 Element.fill)
+                ]
+                { src = "/assets/backspace.svg"
                 , description = "BACKSPACE"
                 }
 
@@ -1410,8 +1412,10 @@ viewKeyboardBottomRow style summary hoverKey letters =
                 { onPress = Just PressEnter
                 , label =
                     Element.image
-                        []
-                        { src= ""
+                        [ Element.width (Element.maximum 40 Element.fill)
+                        , Element.height (Element.maximum 40 Element.fill)
+                        ]
+                        { src= "/assets/enter.svg"
                         , description = "ENTER"
                         }
                 }
