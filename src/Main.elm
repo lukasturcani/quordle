@@ -255,8 +255,8 @@ modelStyle =
         , Element.spacing 7
         ]
     , elementRow =
-        [ Element.width (Element.fillPortion 4)
-        , Element.height (Element.fillPortion 4)
+        [ Element.width Element.fill
+        , Element.height (Element.maximum 400 (Element.fillPortion 4))
         , Element.spacing 7
         ]
     , quad =
@@ -371,8 +371,8 @@ modelStyle =
                 }
         in
         { elementColumn =
-            [ Element.width (Element.fillPortion 2)
-            , Element.height (Element.fillPortion 2)
+            [ Element.width Element.fill
+            , Element.height (Element.maximum 200 (Element.fillPortion 2))
             , Element.spacing 7
             ]
         , keyboardRow =
