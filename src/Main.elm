@@ -210,6 +210,7 @@ type alias EmptyRowStyle msg =
     { elementRow : List (Element.Attribute msg)
     }
 
+
 type alias KeyboardStyle msg =
     { keyboardRow : KeyboardRowStyle msg
     , keyboardBottomRow : KeyboardBottomRowStyle msg
@@ -242,7 +243,6 @@ modelStyle =
 
         rounded =
             Border.rounded 5
-
     in
     { elementLayout =
         [ Background.color (Element.rgb 0.12157 0.16078 0.2157)
@@ -365,6 +365,7 @@ modelStyle =
                 , Events.onMouseLeave UnhoverButton
                 , Element.pointer
                 ]
+
             key =
                 { elementEl = buttonAttributes
                 }
@@ -584,7 +585,7 @@ getKeyboardQuadBackgroundColor match =
             Element.rgb 0.4196 0.447 0.50196
 
         LetterMatchMissing ->
-            Element.rgb 0.082 0.369 0.459
+            Element.rgb 0.4196 0.447 0.50196
 
 
 getFontColor : GuessedLetterMatch -> Element.Color
@@ -1021,8 +1022,6 @@ viewActiveEmptyLetter style =
     Element.el style.elementEl Element.none
 
 
-
-
 isHoverKey : Maybe String -> String -> Bool
 isHoverKey true test =
     case true of
@@ -1080,6 +1079,10 @@ button :
     -> Char
     -> Element.Element Msg
 button style summary hoverKey char =
+    let
+        backgroundState_ =
+            backgroundState summary char
+    in
     Element.el
         (Element.moveUp
             (Animator.linear
@@ -1092,10 +1095,12 @@ button style summary hoverKey char =
                         Animator.at 0
                 )
             )
-            :: (buttonBackground summary char |> Element.behindContent)
+            :: (buttonBackground backgroundState_
+                    |> Element.behindContent
+               )
             :: Events.onClick (PressKey char)
             :: Events.onMouseEnter (HoverButton (String.fromChar char))
-            :: keyboardLetterFontColor summary char
+            :: keyboardLetterFontColor backgroundState_
             :: style.elementEl
         )
         (Element.el
@@ -1108,55 +1113,108 @@ button style summary hoverKey char =
         )
 
 
-quadSummaryHasLetter : Char -> QuadSummary -> Bool
-quadSummaryHasLetter char summary =
-    Set.member char summary.knownPositionLetters || Set.member char summary.knownPresentLetters
+keyboardLetterFontColor : BackgroundState -> Element.Attribute Msg
+keyboardLetterFontColor backgroundState_ =
+    case backgroundState_ of
+        BackgroundStateAllMissing ->
+            Font.color (Element.rgb 0.1 0.6 0.5333)
+
+        BackgroundStateMixed state ->
+            if
+                List.all
+                    ((==) LetterMatchUntested)
+                    [ state.firstQuad
+                    , state.secondQuad
+                    , state.thirdQuad
+                    , state.fourthQuad
+                    ]
+            then
+                Font.color (Element.rgb 1.0 1.0 1.0)
+
+            else
+                Font.color (Element.rgb 0.0 0.0 0.0)
 
 
-keyboardLetterFontColor : KeyboardSummary -> Char -> Element.Attribute Msg
-keyboardLetterFontColor summary char =
+type BackgroundState
+    = BackgroundStateAllMissing
+    | BackgroundStateMixed
+        { firstQuad : LetterMatch
+        , secondQuad : LetterMatch
+        , thirdQuad : LetterMatch
+        , fourthQuad : LetterMatch
+        }
+
+
+backgroundState : KeyboardSummary -> Char -> BackgroundState
+backgroundState summary char =
     let
-        inQuad =
-            List.any (quadSummaryHasLetter char)
-                [ summary.first
-                , summary.second
-                , summary.third
-                , summary.fourth
-                ]
+        first =
+            getLetterMatch summary.first char
+
+        second =
+            getLetterMatch summary.second char
+
+        third =
+            getLetterMatch summary.third char
+
+        fourth =
+            getLetterMatch summary.fourth char
     in
-    if inQuad then
-        Font.color (Element.rgb 0.0 0.0 0.0)
+    case [ first, second, third, fourth ] of
+        [ LetterMatchMissing, LetterMatchMissing, LetterMatchMissing, LetterMatchMissing ] ->
+            BackgroundStateAllMissing
 
-    else
-        Font.color (Element.rgb 1.0 1.0 1.0)
+        _ ->
+            BackgroundStateMixed
+                { firstQuad = first
+                , secondQuad = second
+                , thirdQuad = third
+                , fourthQuad = fourth
+                }
 
 
-buttonBackground : KeyboardSummary -> Char -> Element.Element Msg
-buttonBackground summary char =
+buttonBackground : BackgroundState -> Element.Element Msg
+buttonBackground backgroundState_ =
     let
         firstQuadColor =
-            char
-                |> getLetterMatch summary.first
-                |> getKeyboardQuadBackgroundColor
-                |> Background.color
+            case backgroundState_ of
+                BackgroundStateAllMissing ->
+                    Element.rgb 0.082 0.369 0.459
+                        |> Background.color
+
+                BackgroundStateMixed letterMatches ->
+                    getKeyboardQuadBackgroundColor letterMatches.firstQuad
+                        |> Background.color
 
         secondQuadColor =
-            char
-                |> getLetterMatch summary.second
-                |> getKeyboardQuadBackgroundColor
-                |> Background.color
+            case backgroundState_ of
+                BackgroundStateAllMissing ->
+                    Element.rgb 0.082 0.369 0.459
+                        |> Background.color
+
+                BackgroundStateMixed letterMatches ->
+                    getKeyboardQuadBackgroundColor letterMatches.secondQuad
+                        |> Background.color
 
         thirdQuadColor =
-            char
-                |> getLetterMatch summary.third
-                |> getKeyboardQuadBackgroundColor
-                |> Background.color
+            case backgroundState_ of
+                BackgroundStateAllMissing ->
+                    Element.rgb 0.082 0.369 0.459
+                        |> Background.color
+
+                BackgroundStateMixed letterMatches ->
+                    getKeyboardQuadBackgroundColor letterMatches.thirdQuad
+                        |> Background.color
 
         fourthQuadColor =
-            char
-                |> getLetterMatch summary.fourth
-                |> getKeyboardQuadBackgroundColor
-                |> Background.color
+            case backgroundState_ of
+                BackgroundStateAllMissing ->
+                    Element.rgb 0.082 0.369 0.459
+                        |> Background.color
+
+                BackgroundStateMixed letterMatches ->
+                    getKeyboardQuadBackgroundColor letterMatches.fourthQuad
+                        |> Background.color
 
         elementStyle =
             [ Element.width Element.fill
