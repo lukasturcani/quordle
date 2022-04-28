@@ -5,7 +5,7 @@
     "uglify-js": "^3.15.4"
   },
   "scripts": {
-    "elm-live": "npx elm-live src/Main.elm -o -e node_modules/.bin/elm -- --optimize --output=output/elm.js",
+    "elm-live": "npx elm-live src/Main.elm -o -e node_modules/.bin/elm -- --output=output/elm.js",
     "make-production": "./scripts/make-production"
   }
 }

@@ -3,7 +3,6 @@ module Main exposing (main)
 import Animator
 import Browser
 import Browser.Events
-import Debug
 import Dict
 import Element
 import Element.Background as Background
