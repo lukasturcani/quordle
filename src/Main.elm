@@ -71,6 +71,10 @@ type alias Flags =
     { answers : List String
     , allowed : List String
     , windowWidth : Int
+    , firstQuadAnswer : String
+    , secondQuadAnswer : String
+    , thirdQuadAnswer : String
+    , fourthQuadAnswer : String
     }
 
 
@@ -78,7 +82,7 @@ init : Json.Decode.Value -> ( Model, Cmd Msg )
 init flags =
     let
         decoder =
-            Json.Decode.map3
+            Json.Decode.map7
                 Flags
                 (Json.Decode.field
                     "answers"
@@ -92,6 +96,23 @@ init flags =
                     "windowWidth"
                     Json.Decode.int
                 )
+                (Json.Decode.field
+                    "firstQuadAnswer"
+                    Json.Decode.string
+                )
+                (Json.Decode.field
+                    "secondQuadAnswer"
+                    Json.Decode.string
+                )
+                (Json.Decode.field
+                    "thirdQuadAnswer"
+                    Json.Decode.string
+                )
+                (Json.Decode.field
+                    "fourthQuadAnswer"
+                    Json.Decode.string
+                )
+
 
         decodedFlags =
             case Json.Decode.decodeValue decoder flags of
@@ -99,17 +120,21 @@ init flags =
                     decodedWords
 
                 Err _ ->
-                    { allowed = [], answers = [], windowWidth = 10 }
+                    { allowed = []
+                    , answers = []
+                    , windowWidth = 10
+                    , firstQuadAnswer = ""
+                    , secondQuadAnswer = ""
+                    , thirdQuadAnswer = ""
+                    , fourthQuadAnswer = ""
+                    }
     in
-    ( { firstQuadAnswer = String.toList "TEARS"
-      , secondQuadAnswer = String.toList "DEARS"
-      , thirdQuadAnswer = String.toList "DINER"
-      , fourthQuadAnswer = String.toList "SILLY"
-      , guesses =
-            [ String.toList "TEARS"
-            , String.toList "FEARS"
-            ]
-      , currentGuess = Animator.init "ABCD"
+    ( { firstQuadAnswer = String.toList decodedFlags.firstQuadAnswer
+      , secondQuadAnswer = String.toList decodedFlags.secondQuadAnswer
+      , thirdQuadAnswer = String.toList decodedFlags.thirdQuadAnswer
+      , fourthQuadAnswer = String.toList decodedFlags.fourthQuadAnswer
+      , guesses = []
+      , currentGuess = Animator.init ""
       , maxGuesses = 9
       , validWords =
             Set.union
