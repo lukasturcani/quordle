@@ -215,6 +215,9 @@ type alias KeyboardStyle msg =
     { keyboardRow : KeyboardRowStyle msg
     , keyboardBottomRow : KeyboardBottomRowStyle msg
     , elementColumn : List (Element.Attribute msg)
+    , elementRowTop : List (Element.Attribute msg)
+    , elementRowMiddle : List (Element.Attribute msg)
+    , elementRowBottom : List (Element.Attribute msg)
     }
 
 
@@ -359,21 +362,32 @@ modelStyle =
         let
             buttonAttributes =
                 [ Background.color (Element.rgb 0.4196 0.447 0.50196)
-                , Element.width Element.fill
-                , Element.height Element.fill
+                , Element.width (Element.maximum 40 Element.fill)
+                , Element.height (Element.maximum 40 Element.fill)
                 , rounded
                 , Events.onMouseLeave UnhoverButton
                 , Element.pointer
                 ]
 
+            iconButtonAttributes =
+                buttonAttributes ++
+                [ Element.width (Element.maximum 80 Element.fill)
+                , Element.height (Element.maximum 40 Element.fill)
+                ]
+
             key =
                 { elementEl = buttonAttributes
                 }
+
+            elementRow =
+                [ Element.height Element.fill
+                , Element.width Element.fill
+                , Element.spacing 7
+                ]
         in
         { elementColumn =
             [ Element.width Element.fill
             , Element.height (Element.maximum 200 (Element.fillPortion 2))
-            , Element.spacing 7
             ]
         , keyboardRow =
             { key = key
@@ -383,8 +397,16 @@ modelStyle =
             , keyboardRow =
                 { key = key
                 }
-            , elementButton = buttonAttributes
+            , elementButton = iconButtonAttributes
             }
+        , elementRowTop =
+            elementRow
+
+        , elementRowMiddle =
+            elementRow
+
+        , elementRowBottom =
+            elementRow
         }
     }
 
@@ -1295,28 +1317,19 @@ viewKeyboard style summary hoverKey =
     Element.column
         style.elementColumn
         [ Element.row
-            [ Element.height Element.fill
-            , Element.width Element.fill
-            , Element.spacing 7
-            ]
+            style.elementRowTop
             ("QWERTYUIOP"
                 |> String.toList
                 |> viewKeyboardRow style.keyboardRow summary hoverKey
             )
         , Element.row
-            [ Element.height Element.fill
-            , Element.width Element.fill
-            , Element.spacing 7
-            ]
+            style.elementRowMiddle
             ("ASDFGHJKL"
                 |> String.toList
                 |> viewKeyboardRow style.keyboardRow summary hoverKey
             )
         , Element.row
-            [ Element.height Element.fill
-            , Element.width Element.fill
-            , Element.spacing 7
-            ]
+            style.elementRowBottom
             ("ZXCVBNM"
                 |> String.toList
                 |> viewKeyboardBottomRow
